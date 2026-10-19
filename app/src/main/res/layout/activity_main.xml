@@ -1,0 +1,1876 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/xy_bg_screen"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="36dp">
+
+        <!-- 1. Hero 身份卡片 (Sculpted Apple Hero Identity Card) -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/XyCard"
+            android:layout_marginBottom="6dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="14dp">
+
+                <!-- 圆环 Avatar -->
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/xy_bg_hero_avatar">
+
+                    <ImageView
+                        android:layout_width="38dp"
+                        android:layout_height="38dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/app_name"
+                        android:src="@mipmap/ic_launcher" />
+                </FrameLayout>
+
+                <!-- 标题与版本号小药丸 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/app_name"
+                            android:textColor="@color/xy_title"
+                            android:textSize="17.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/badgeVersion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:paddingStart="5dp"
+                            android:paddingEnd="5dp"
+                            android:paddingTop="1.5dp"
+                            android:paddingBottom="1.5dp"
+                            android:text="v1.0"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="9.5sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/xy_tagline"
+                        android:textColor="@color/xy_subtitle"
+                        android:textSize="11.5sp" />
+                </LinearLayout>
+
+                <!-- 状态呼吸指示胶囊 -->
+                <LinearLayout
+                    android:id="@+id/statusPill"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/xy_bg_status_pill"
+                    android:foreground="?android:attr/selectableItemBackgroundBorderless"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="9dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="5dp"
+                    android:paddingBottom="5dp">
+
+                    <View
+                        android:id="@+id/statusDot"
+                        android:layout_width="6dp"
+                        android:layout_height="6dp"
+                        android:background="@drawable/xy_bg_hero_avatar"
+                        android:backgroundTint="@color/xy_status_on_dot" />
+
+                    <TextView
+                        android:id="@+id/statusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="5dp"
+                        android:text="@string/xy_status_active"
+                        android:textColor="@color/xy_status_on_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 2. 语音分组 (VOICE) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_voice" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_voice_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 语音解锁 -->
+                <LinearLayout
+                    android:id="@+id/rowVoiceGate"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxVoiceGate"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconVoiceGate"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_voice"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_voice_gate_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_voice_gate_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchVoiceGate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_voice_gate_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 语音动画 -->
+                <LinearLayout
+                    android:id="@+id/rowVoiceMelt"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxVoiceMelt"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconVoiceMelt"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_wave"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_voice_melt_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_voice_melt_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchVoiceMelt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_voice_melt_title" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. 验证码分组 (AUTOFILL) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_otp" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_otp_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:id="@+id/rowOtpEnhance"
+                style="@style/XyRow">
+
+                <FrameLayout
+                    android:id="@+id/boxOtpEnhance"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/xy_bg_icon_box">
+
+                    <ImageView
+                        android:id="@+id/iconOtpEnhance"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_xy_shield"
+                        app:tint="@color/xy_icon_tint_off" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="11dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/XyRowTitle"
+                        android:text="@string/xy_otp_enhance_title" />
+
+                    <TextView
+                        style="@style/XyRowSubtitle"
+                        android:text="@string/xy_otp_enhance_desc" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchOtpEnhance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:contentDescription="@string/xy_otp_enhance_title" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 4. 计算器分组 (CALCULATOR) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_calc" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_calc_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:animateLayoutChanges="true"
+                android:orientation="vertical">
+
+                <!-- 打字即算 -->
+                <LinearLayout
+                    android:id="@+id/rowCalc"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxCalc"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconCalc"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_calc"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_calc_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_calc_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchCalc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_calc_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 结果替换算式 -->
+                <LinearLayout
+                    android:id="@+id/rowCalcReplace"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxCalcReplace"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconCalcReplace"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_swap"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_calc_replace_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_calc_replace_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchCalcReplace"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_calc_replace_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 人民币大写转换 -->
+                <LinearLayout
+                    android:id="@+id/rowCalcRmb"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxCalcRmb"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconCalcRmb"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_currency"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_calc_rmb_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_calc_rmb_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchCalcRmb"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_calc_rmb_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 程序员进制转换 -->
+                <LinearLayout
+                    android:id="@+id/rowCalcRadix"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxCalcRadix"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconCalcRadix"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_code"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_calc_radix_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_calc_radix_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchCalcRadix"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_calc_radix_title" />
+                </LinearLayout>
+
+                <!-- 语法速查下沉托盘卡片 (Recessed Tray) -->
+                <LinearLayout
+                    android:id="@+id/layoutRadixRules"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_marginEnd="12dp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="14dp"
+                    android:background="@drawable/xy_bg_tray"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="6dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/xy_calc_radix_syntax_title"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="11.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="@string/xy_calc_radix_syntax_hint"
+                            android:textColor="@color/xy_section_en"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- 前缀分组 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/xy_calc_radix_group_prefix"
+                        android:textColor="@color/xy_subtitle"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold" />
+
+                    <!-- 0x -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="0x"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_hex_to_dec"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_hex_dec"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- 0b -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="0b"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_bin_to_dec"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_bin_dec"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- 0o -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="0o"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_oct_to_dec"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_oct_dec"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- 细分割线 -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="0.6dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="6dp"
+                        android:background="@color/xy_divider" />
+
+                    <!-- 后缀分组 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="@string/xy_calc_radix_group_suffix"
+                        android:textColor="@color/xy_subtitle"
+                        android:textSize="10.5sp"
+                        android:textStyle="bold" />
+
+                    <!-- hex -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="hex"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_dec_to_hex"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_dec_hex"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- bin -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="bin"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_dec_to_bin"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_dec_bin"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <!-- oct -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp">
+
+                        <TextView
+                            android:layout_width="34dp"
+                            android:layout_height="20dp"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:fontFamily="monospace"
+                            android:gravity="center"
+                            android:text="oct"
+                            android:textColor="@color/xy_badge_text"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/xy_calc_radix_dec_to_oct"
+                            android:textColor="@color/xy_title"
+                            android:textSize="11.5sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_calc_radix_eg_dec_oct"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 5. 专属词库分组 (LEXICON) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_lm" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_lm_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 1) 通用开关：智能记忆与重排 · 通用 (适配全拼/双拼/五笔/九键) -->
+                <LinearLayout
+                    android:id="@+id/rowLm"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxLm"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconLm"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_memory"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_lm_title" />
+
+                        <TextView
+                            android:id="@+id/textLmSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_lm_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchLm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_lm_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 2) 全拼专属开关：全拼整句与词库 · 全拼 -->
+                <LinearLayout
+                    android:id="@+id/rowLmQuanpin"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxLmQuanpin"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconLmQuanpin"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_code"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_lm_quanpin_title" />
+
+                        <TextView
+                            android:id="@+id/textLmQuanpinSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_lm_quanpin_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchLmQuanpin"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_lm_quanpin_title" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 3) 个人词库管理 (查看记忆/剔除坏词与防复发压制/添加快捷短语/复制导出与粘贴导入) -->
+                <LinearLayout
+                    android:id="@+id/rowLmLexiconManager"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxLmLexiconManager"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:id="@+id/iconLmLexiconManager"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_star"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_lm_lexicon_mgr_title" />
+
+                        <TextView
+                            android:id="@+id/textLmLexiconSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_lm_lexicon_mgr_desc" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/badgeLmLexiconCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_lm_lexicon_mgr_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- 个人词库使用指南卡片 (Recessed Guide Tray) -->
+                <LinearLayout
+                    android:id="@+id/layoutLexiconGuide"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/xy_bg_tray"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?android:attr/selectableItemBackground"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="9dp"
+                    android:paddingBottom="9dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/xy_lexicon_guide_card_title"
+                            android:textColor="@color/xy_title"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/xy_lexicon_guide_card_action"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_lexicon_guide_tag_context"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:text="@string/xy_lexicon_guide_desc_context"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_lexicon_guide_tag_code"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:text="@string/xy_lexicon_guide_desc_code"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_lexicon_guide_tag_import"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:text="@string/xy_lexicon_guide_desc_import"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_lexicon_guide_tag_suppress"
+                            android:textColor="@color/xy_status_off_text"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:maxLines="1"
+                            android:ellipsize="end"
+                            android:text="@string/xy_lexicon_guide_desc_suppress"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 4) 核心引擎状态 -->
+                <LinearLayout
+                    android:id="@+id/rowDict"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxDict"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_status_on_bg">
+
+                        <ImageView
+                            android:id="@+id/iconDict"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_dict"
+                            app:tint="@color/xy_status_on_dot" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_dict_title" />
+
+                        <TextView
+                            android:id="@+id/textDictSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_dict_desc_dynamic" />
+                    </LinearLayout>
+
+                    <!-- 核心引擎状态指示胶囊 -->
+                    <LinearLayout
+                        android:id="@+id/dictStatusPill"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_status_pill"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="9dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp">
+
+                        <View
+                            android:id="@+id/dictStatusDot"
+                            android:layout_width="5dp"
+                            android:layout_height="5dp"
+                            android:background="@drawable/xy_bg_hero_avatar"
+                            android:backgroundTint="@color/xy_status_on_dot" />
+
+                        <TextView
+                            android:id="@+id/dictStatusText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4.5dp"
+                            android:text="@string/xy_engine_ready"
+                            android:textColor="@color/xy_status_on_text"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 核心引擎说明卡片 (Recessed Engine Tray) -->
+                <LinearLayout
+                    android:id="@+id/layoutEngineGuide"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/xy_bg_tray"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="9dp"
+                    android:paddingBottom="9dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_engine_card_tag_dict"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/textDictInfo"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/xy_engine_card_unloaded"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_engine_card_tag_run"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/xy_engine_card_run_desc"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_code_badge"
+                            android:paddingStart="6dp"
+                            android:paddingEnd="6dp"
+                            android:paddingTop="2dp"
+                            android:paddingBottom="2dp"
+                            android:text="@string/xy_engine_card_tag_load"
+                            android:textColor="@color/xy_accent"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:text="@string/xy_engine_card_load_desc"
+                            android:textColor="@color/xy_subtitle"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 5) 清空自学词库 -->
+                <LinearLayout
+                    android:id="@+id/rowLmClearMemory"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxLmClearMemory"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconLmClearMemory"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_trash"
+                            app:tint="@color/xy_icon_tint_off" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_lm_clear_memory_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_lm_clear_memory_desc" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 6. Keys Cafe 分组 (LAYOUT) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_keyscafe" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_keyscafe_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:id="@+id/rowKeysCafe"
+                style="@style/XyRow">
+
+                <FrameLayout
+                    android:id="@+id/boxKeysCafe"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/xy_bg_icon_box">
+
+                    <ImageView
+                        android:id="@+id/iconKeysCafe"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_xy_star"
+                        app:tint="@color/xy_icon_tint_off" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="11dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/XyRowTitle"
+                        android:text="@string/xy_keyscafe_title" />
+
+                    <TextView
+                        style="@style/XyRowSubtitle"
+                        android:text="@string/xy_keyscafe_desc" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchKeysCafe"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:contentDescription="@string/xy_keyscafe_title" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 7. 实验功能分组 (LABS) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_lab" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_lab_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:id="@+id/rowLab"
+                style="@style/XyRow">
+
+                <FrameLayout
+                    android:id="@+id/boxLab"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="@drawable/xy_bg_icon_box">
+
+                    <ImageView
+                        android:id="@+id/iconLab"
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_xy_flask"
+                        app:tint="@color/xy_icon_tint_off" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="11dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        style="@style/XyRowTitle"
+                        android:text="@string/xy_lab_title" />
+
+                    <TextView
+                        style="@style/XyRowSubtitle"
+                        android:text="@string/xy_lab_desc" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switchLab"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:contentDescription="@string/xy_lab_title" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 8. 实时效果体验沙盒 (SANDBOX - 来自 Ui.html 原型设计) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_sandbox" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_sandbox_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/xy_sandbox_desc"
+                    android:textColor="@color/xy_subtitle"
+                    android:textSize="11.5sp" />
+
+                <!-- 预设快速测试芯片 -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/btnPreset1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/xy_bg_preset_chip"
+                            android:fontFamily="monospace"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="128*34="
+                            android:textColor="@color/xy_title"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/btnPreset2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/xy_bg_preset_chip"
+                            android:fontFamily="monospace"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="3500大写="
+                            android:textColor="@color/xy_title"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/btnPreset3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/xy_bg_preset_chip"
+                            android:fontFamily="monospace"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="0xFF="
+                            android:textColor="@color/xy_title"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/btnPreset4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/xy_bg_preset_chip"
+                            android:fontFamily="monospace"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="255hex="
+                            android:textColor="@color/xy_title"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- 输入编辑框 -->
+                <EditText
+                    android:id="@+id/editSandboxInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/xy_bg_tray"
+                    android:fontFamily="monospace"
+                    android:hint="@string/xy_sandbox_input_hint"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:textColor="@color/xy_title"
+                    android:textColorHint="@color/xy_section_en"
+                    android:textSize="13sp" />
+
+                <!-- 实时候选栏模拟胶囊 -->
+                <LinearLayout
+                    android:id="@+id/layoutCandidatePreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/xy_sandbox_candidate_prefix"
+                        android:textColor="@color/xy_subtitle"
+                        android:textSize="11.5sp" />
+
+                    <TextView
+                        android:id="@+id/pillCandidate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/xy_bg_candidate_pill"
+                        android:fontFamily="monospace"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingTop="5dp"
+                        android:paddingBottom="5dp"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 9. 关于分组 (ABOUT) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_about" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_about_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 项目主页 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutRepo"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_github"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_repo_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_about_repo_desc" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_repo_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 开源许可与致谢 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutLicenses"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_license"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_license_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_license_desc" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_license_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 检查更新 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutUpdate"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_update"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_update_title" />
+
+                        <TextView
+                            android:id="@+id/textAboutUpdateSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_update_subtitle_default" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/badgeAboutUpdate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_update_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 关于汐语 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutApp"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_info"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_app_title" />
+
+                        <TextView
+                            android:id="@+id/textAboutAppSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_app_title" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_app_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 页脚版本信息 -->
+        <TextView
+            android:id="@+id/footerText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="@string/xy_footer"
+            android:textColor="@color/xy_section_en"
+            android:textSize="11.5sp" />
+    </LinearLayout>
+</ScrollView>

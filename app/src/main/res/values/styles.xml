@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 设置行样式 -->
+    <style name="XyRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">60dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <style name="XyRowTitle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/xy_title</item>
+    </style>
+
+    <style name="XyRowSubtitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">2dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/xy_subtitle</item>
+        <item name="android:lineSpacingMultiplier">1.28</item>
+    </style>
+
+    <!-- 错位缩进分隔线（52dp 避开左侧微图标容器） -->
+    <style name="XyDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:layout_marginStart">52dp</item>
+        <item name="android:background">@color/xy_divider</item>
+    </style>
+
+    <!-- HIG 紧凑圆角卡片 -->
+    <style name="XyCard">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0.8dp</item>
+        <item name="strokeColor">@color/xy_card_border</item>
+        <item name="cardBackgroundColor">@color/xy_card</item>
+    </style>
+
+    <!-- 双语微排版分组标 -->
+    <style name="XySectionHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">4dp</item>
+        <item name="android:layout_marginEnd">4dp</item>
+        <item name="android:layout_marginTop">24dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="XySectionTitle">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">12.5sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:textColor">@color/xy_section</item>
+    </style>
+
+    <style name="XySectionEn">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">9sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:letterSpacing">0.12</item>
+        <item name="android:textColor">@color/xy_section_en</item>
+    </style>
+
+    <!-- 弹窗：与页面同色系的 28dp 圆角卡片 -->
+    <style name="ShapeAppearance.Xiyu.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="XyDialogTitle" parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textSize">19sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/xy_title</item>
+    </style>
+
+    <style name="XyDialogBody" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/xy_subtitle</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
+    <style name="ThemeOverlay.Xiyu.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Xiyu.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/XyDialogTitle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/XyDialogBody</item>
+        <item name="colorSurfaceContainerHigh">@color/xy_card</item>
+        <item name="colorSurface">@color/xy_card</item>
+        <item name="colorOnSurface">@color/xy_title</item>
+        <item name="colorPrimary">@color/xy_accent</item>
+    </style>
+</resources>

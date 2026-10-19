@@ -1,0 +1,3 @@
+## Android SDK location example
+## Replace with your actual Android SDK path
+sdk.dir=/path/to/Android/Sdk

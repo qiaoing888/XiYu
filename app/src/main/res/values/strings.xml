@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">汐语</string>
+    <string name="xy_tagline">三星键盘增强</string>
+    <string name="xy_version_badge">v%1$s</string>
+
+    <string name="xy_status_active">已激活</string>
+    <string name="xy_status_inactive">未激活</string>
+    <string name="xy_status_dialog_title">汐语状态诊断</string>
+    <string name="xy_status_active_msg">模块已接入 Xposed，配置即时同步。</string>
+    <string name="xy_status_inactive_msg">配置通道未就绪。\n请在 LSPosed 启用模块，并勾选三星键盘、智能建议与 Keys Cafe。</string>
+
+    <!-- 分组标题与英文角标 -->
+    <string name="xy_section_voice">语音</string>
+    <string name="xy_section_voice_en">VOICE</string>
+    <string name="xy_voice_gate_title">语音解锁</string>
+    <string name="xy_voice_gate_desc">隐藏输入法按钮后仍可长按语音</string>
+    <string name="xy_voice_melt_title">语音动画</string>
+    <string name="xy_voice_melt_desc">语音时键盘化为水面，随声音起伏</string>
+
+    <string name="xy_section_otp">验证码</string>
+    <string name="xy_section_otp_en">AUTOFILL</string>
+    <string name="xy_otp_enhance_title">验证码自动填充</string>
+    <string name="xy_otp_enhance_desc">识别短信与通知验证码，候选栏一键上屏</string>
+
+    <string name="xy_section_calc">计算器</string>
+    <string name="xy_section_calc_en">CALCULATOR</string>
+    <string name="xy_calc_title">打字即算</string>
+    <string name="xy_calc_desc">算式以等号结尾，候选栏即时给出结果</string>
+    <string name="xy_calc_replace_title">结果替换算式</string>
+    <string name="xy_calc_replace_desc">点击结果替换算式；关闭则追加结果</string>
+    <string name="xy_calc_rmb_title">人民币大写转换</string>
+    <string name="xy_calc_rmb_desc">金额后加 dx= 或 大写=，转换财务大写</string>
+    <string name="xy_calc_radix_title">程序员进制转换</string>
+    <string name="xy_calc_radix_desc">等号结尾即时换算，支持进制前缀与后缀</string>
+
+    <!-- 程序员进制转换速查指南 -->
+    <string name="xy_calc_radix_syntax_title">语法速查</string>
+    <string name="xy_calc_radix_syntax_hint">等号结尾触发</string>
+    <string name="xy_calc_radix_group_prefix">前缀 → 十进制</string>
+    <string name="xy_calc_radix_group_suffix">十进制 → 各进制</string>
+    <string name="xy_calc_radix_hex_to_dec">16 进制 → 10 进制</string>
+    <string name="xy_calc_radix_bin_to_dec">2 进制 → 10 进制</string>
+    <string name="xy_calc_radix_oct_to_dec">8 进制 → 10 进制</string>
+    <string name="xy_calc_radix_dec_to_hex">10 进制 → 16 进制</string>
+    <string name="xy_calc_radix_dec_to_bin">10 进制 → 2 进制</string>
+    <string name="xy_calc_radix_dec_to_oct">10 进制 → 8 进制</string>
+    <string name="xy_calc_radix_eg_hex_dec">0xFF=</string>
+    <string name="xy_calc_radix_eg_bin_dec">0b1010=</string>
+    <string name="xy_calc_radix_eg_oct_dec">0o77=</string>
+    <string name="xy_calc_radix_eg_dec_hex">255hex=</string>
+    <string name="xy_calc_radix_eg_dec_bin">10bin=</string>
+    <string name="xy_calc_radix_eg_dec_oct">63oct=</string>
+
+    <string name="xy_section_lm">专属词库</string>
+    <string name="xy_section_lm_en">LEXICON</string>
+    <string name="xy_lm_title">智能记忆与重排 · 通用</string>
+    <string name="xy_lm_desc">全拼/双拼/五笔/九键通用</string>
+    <string name="xy_lm_quanpin_title">全拼整句与词库 · 全拼</string>
+    <string name="xy_lm_quanpin_desc">整句解码与词库补全（双拼/五笔请关闭）</string>
+    <string name="xy_lm_lexicon_mgr_title">个人词库管理</string>
+    <string name="xy_lm_lexicon_mgr_desc">管理记忆、快捷短语与坏词压制</string>
+    <string name="xy_lm_lexicon_mgr_desc_stats">记忆 %1$d · 短语 %2$d · 压制 %3$d</string>
+    <string name="xy_lm_lexicon_mgr_action">管理</string>
+    <string name="xy_lm_lexicon_mgr_count_badge">%1$d 项</string>
+
+    <!-- 个人词库使用指南下沉卡片 (Recessed Guide Tray) -->
+    <string name="xy_lexicon_guide_card_title">词库使用说明</string>
+    <string name="xy_lexicon_guide_card_action">管理 ›</string>
+    <string name="xy_lexicon_guide_tag_context">上文触发</string>
+    <string name="xy_lexicon_guide_desc_context">添短语时勾选「按上文语境」，打完即联想</string>
+    <string name="xy_lexicon_guide_tag_code">编码触发</string>
+    <string name="xy_lexicon_guide_desc_code">输入编码，短语置顶候选</string>
+    <string name="xy_lexicon_guide_tag_import">备份导入</string>
+    <string name="xy_lexicon_guide_desc_import">导出备份，或粘贴批量导入</string>
+    <string name="xy_lexicon_guide_tag_suppress">坏词压制</string>
+    <string name="xy_lexicon_guide_desc_suppress">滑动剔除，阻止再次学习</string>
+
+    <!-- 个人词库管理弹窗文案 -->
+    <string name="xy_lexicon_dialog_title">个人词库管理</string>
+    <string name="xy_lexicon_filter_all">全部</string>
+    <string name="xy_lexicon_filter_learned">记忆</string>
+    <string name="xy_lexicon_filter_custom">短语</string>
+    <string name="xy_lexicon_filter_suppressed">坏词</string>
+    <string name="xy_lexicon_btn_add">+ 快捷短语</string>
+    <string name="xy_lexicon_btn_export">复制导出</string>
+    <string name="xy_lexicon_btn_import">粘贴导入</string>
+    <string name="xy_lexicon_swipe_hint">左滑剔除词条；点击压制词解除</string>
+    <string name="xy_lexicon_empty_hint">暂无词条\n添加快捷短语，或打字上屏自动积累</string>
+    <string name="xy_lexicon_delete_title">剔除词条「%1$s」</string>
+    <string name="xy_lexicon_delete_msg">从个人词库移除该词条（触发键：%1$s）。</string>
+    <string name="xy_lexicon_suppress_checkbox">同时压制，禁止再次自学习</string>
+    <string name="xy_lexicon_delete_confirm">确认剔除</string>
+    <string name="xy_lexicon_unsuppress_title">解除坏词压制</string>
+    <string name="xy_lexicon_unsuppress_msg">解除对「%1$s」的压制？解除后恢复正常权重。</string>
+    <string name="xy_lexicon_unsuppress_confirm">解除压制</string>
+    <string name="xy_lexicon_add_title">添加快捷短语</string>
+    <string name="xy_lexicon_add_code_hint">触发编码</string>
+    <string name="xy_lexicon_add_phrase_hint">目标短语或长句</string>
+    <string name="xy_lexicon_add_context_mode">按上文语境触发</string>
+    <string name="xy_lexicon_add_context_hint">勾选后，打完触发词上屏即联想该短语</string>
+    <string name="xy_lexicon_add_confirm">保存短语</string>
+    <string name="xy_lexicon_export_success">已复制 %1$d 条词库备份至剪贴板</string>
+    <string name="xy_lexicon_export_empty">词库为空，暂无可导出内容</string>
+    <string name="xy_lexicon_import_title">导入词库备份</string>
+    <string name="xy_lexicon_import_hint">粘贴 TSV 备份；或按「编码 短语」「@上文 短语」「!压制词」逐行导入。</string>
+    <string name="xy_lexicon_import_overwrite">覆盖现有词库，默认合并</string>
+    <string name="xy_lexicon_import_paste_clipboard">从剪贴板填入</string>
+    <string name="xy_lexicon_import_confirm">立即导入</string>
+    <string name="xy_lexicon_import_success">成功导入 %1$d 条个人词库记录</string>
+    <string name="xy_lexicon_import_fail">未解析到有效词条，请检查文本格式</string>
+
+    <string name="xy_dict_title">核心引擎</string>
+    <string name="xy_dict_desc_dynamic">本地词库与 N-gram 模型已就绪</string>
+    <string name="xy_dict_desc_offline">词库引擎未载入</string>
+    <string name="xy_engine_card_tag_dict">内置只读</string>
+    <string name="xy_engine_card_tag_run">离线</string>
+    <string name="xy_engine_card_run_desc">C++ Trie + N-gram · 纯本地运行</string>
+    <string name="xy_engine_card_tag_load">加载</string>
+    <string name="xy_engine_card_load_desc">内置 .rodata · 外置 mmap · 零拷贝</string>
+    <string name="xy_engine_card_unloaded">词库未载入</string>
+    <string name="xy_engine_ready">已就绪</string>
+    <string name="xy_engine_unready">未就绪</string>
+    <string name="xy_lm_clear_memory_title">清空自学词库</string>
+    <string name="xy_lm_clear_memory_desc">清空全部记忆、短语与压制记录</string>
+    <string name="xy_lm_clear_dialog_title">清空自学词库</string>
+    <string name="xy_lm_clear_dialog_message">将清空全部记忆、快捷短语与压制记录，且不可撤销。建议先导出备份。</string>
+    <string name="xy_lm_clear_dialog_confirm">清空</string>
+    <string name="xy_lm_clear_dialog_cancel">取消</string>
+    <string name="xy_lm_clear_toast_success">自学词库已清空</string>
+
+    <string name="xy_section_keyscafe">Keys Cafe</string>
+    <string name="xy_section_keyscafe_en">LAYOUT</string>
+    <string name="xy_keyscafe_title">星标按键绕过</string>
+    <string name="xy_keyscafe_desc">解除自定义按键布局的星标按键校验</string>
+
+    <string name="xy_section_lab">实验功能</string>
+    <string name="xy_section_lab_en">LABS</string>
+    <string name="xy_lab_title">三星键盘实验室</string>
+    <string name="xy_lab_desc">实验功能与调试开关，可能影响稳定性</string>
+
+    <!-- 沙盒测试 -->
+    <string name="xy_section_sandbox">效果体验沙盒</string>
+    <string name="xy_section_sandbox_en">SANDBOX</string>
+    <string name="xy_sandbox_desc">测试算式、进制与中文候选上屏</string>
+    <string name="xy_sandbox_input_hint">输入测试内容</string>
+    <string name="xy_sandbox_candidate_prefix">候选推荐：</string>
+
+    <!-- 关于与开源许可 -->
+    <string name="xy_section_about">关于</string>
+    <string name="xy_section_about_en">ABOUT</string>
+    <string name="xy_about_repo_title">项目主页</string>
+    <string name="xy_about_repo_desc">github.com/qiaoing888/XiYu</string>
+    <string name="xy_about_repo_action">访问</string>
+    <string name="xy_about_license_title">开源许可与致谢</string>
+    <string name="xy_about_license_desc">GPL-3.0 · 第三方组件与数据来源</string>
+    <string name="xy_about_license_action">查看</string>
+    <string name="xy_about_update_title">检查更新</string>
+    <string name="xy_about_update_action">检查</string>
+    <string name="xy_about_update_checking">检查中…</string>
+    <string name="xy_about_update_subtitle_default">点击检查版本更新</string>
+    <string name="xy_about_update_current">当前版本 %1$s · 点击检查更新</string>
+    <string name="xy_about_update_new">当前 %1$s · 最新 v%2$s</string>
+    <string name="xy_about_update_badge_new">新版本 v%1$s</string>
+    <string name="xy_about_update_is_latest">已是最新版本 v%1$s</string>
+    <string name="xy_about_update_failed">检查失败，请稍后重试</string>
+    <string name="xy_about_app_title">关于汐语</string>
+    <string name="xy_about_app_desc">版本 %1$s · 本地运行 · 开源共建</string>
+    <string name="xy_about_app_action">GPL-3.0</string>
+
+    <string name="xy_about_dialog_title">关于汐语</string>
+    <string name="xy_about_dialog_msg">汐语（XiYu）是面向三星 One UI 键盘的本地增强模块。语音、验证码、计算与词库重排全部在本机完成，不收集、不上传任何输入内容；仅在打开设置页时访问 GitHub 检查版本更新。</string>
+    <string name="xy_about_dialog_repo">github.com/qiaoing888/XiYu ↗</string>
+    <string name="xy_about_dialog_license">GPL-3.0 · Copyright (C) 2026 XiYu Contributors</string>
+    <string name="xy_about_dialog_open_repo">项目主页</string>
+    <string name="xy_about_dialog_close">关闭</string>
+    <string name="xy_about_link_failed">未找到可打开链接的应用</string>
+
+    <string name="xy_license_dialog_title">开源许可与致谢</string>
+    <string name="xy_license_dialog_intro">汐语基于 GNU GPL-3.0 发布。以下组件与数据源共同构成本应用，衷心感谢每一位开源作者。</string>
+    <string name="xy_license_group_data">数据来源</string>
+    <string name="xy_license_group_code">代码组件</string>
+    <string name="xy_license_group_project">本项目</string>
+    <string name="xy_license_data_ice">基础与扩展词库、简繁与多音字数据</string>
+    <string name="xy_license_data_wanxiang">补充词库与 .gram 语言模型</string>
+    <string name="xy_license_data_lm">N-gram 语言模型训练数据</string>
+    <string name="xy_license_code_darts">双数组 Trie 实现 · Susumu Yata</string>
+    <string name="xy_license_code_xposed">Xposed 模块接口</string>
+    <string name="xy_license_code_androidx">Android UI 基础库</string>
+    <string name="xy_license_code_kotlin">Kotlin 运行时与协程</string>
+    <string name="xy_license_project_desc">三星键盘增强 · 本项目</string>
+    <string name="xy_license_full_text">完整许可文本随源码发布，见仓库中的 LICENSE 与 THIRD_PARTY_NOTICES.md。</string>
+    <string name="xy_license_gpl_link">查看 GPL-3.0 全文 ↗</string>
+    <string name="xy_license_close">关闭</string>
+
+    <string name="xy_update_dialog_title">发现新版本 v%1$s</string>
+    <string name="xy_update_dialog_current">当前版本 v%1$s</string>
+    <string name="xy_update_dialog_latest">最新版本 v%1$s</string>
+    <string name="xy_update_dialog_notes_title">更新内容</string>
+    <string name="xy_update_dialog_empty_notes">该版本未填写更新说明，点击「前往下载」查看详情。</string>
+    <string name="xy_update_dialog_notes_hint">完整说明与安装包见 GitHub Release 页面</string>
+    <string name="xy_update_dialog_download">前往下载</string>
+    <string name="xy_update_dialog_later">稍后</string>
+
+    <string name="xy_footer">汐语 · 专为 One UI 三星键盘定制增强</string>
+
+    <!-- 作用域声明 -->
+    <string-array name="xposed_scope">
+        <item>com.samsung.android.honeyboard</item>
+        <item>com.samsung.android.keyscafe</item>
+        <item>com.samsung.android.smartsuggestions</item>
+        <item>com.keyscafe.unlock</item>
+    </string-array>
+</resources>

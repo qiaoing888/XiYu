@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 全局画布与卡片（深色午夜黑） -->
+    <color name="xy_background">#0B0B0F</color>
+    <color name="xy_card">#17171C</color>
+    <color name="xy_card_border">#14FFFFFF</color>
+    <color name="xy_icon_bg">#FFFFFF</color>
+    <color name="xy_tray">#111116</color>
+    <color name="xy_tray_border">#0FFFFFFF</color>
+    <color name="xy_divider">#12FFFFFF</color>
+
+    <!-- 文本色彩层次 -->
+    <color name="xy_title">#F5F5F7</color>
+    <color name="xy_subtitle">#9CA3AF</color>
+    <color name="xy_section">#9CA3AF</color>
+    <color name="xy_section_en">#6B7280</color>
+
+    <!-- 强调色与高亮底色 -->
+    <color name="xy_accent">#5B8CFF</color>
+    <color name="xy_accent_soft">#265B8CFF</color>
+
+    <!-- 微图标容器（常态关闭） -->
+    <color name="xy_icon_box_off">#26262C</color>
+    <color name="xy_icon_tint_off">#9CA3AF</color>
+
+    <!-- 状态指示胶囊 -->
+    <color name="xy_status_on_bg">#2130D158</color>
+    <color name="xy_status_on_border">#3D30D158</color>
+    <color name="xy_status_on_text">#32D74B</color>
+    <color name="xy_status_on_dot">#30D158</color>
+
+    <color name="xy_status_off_bg">#24FF453A</color>
+    <color name="xy_status_off_border">#3DFF453A</color>
+    <color name="xy_status_off_text">#FF453A</color>
+    <color name="xy_status_off_dot">#FF453A</color>
+
+    <!-- 代码徽章与速查 -->
+    <color name="xy_badge_bg">#222228</color>
+    <color name="xy_badge_text">#5B8CFF</color>
+    <color name="xy_code_box_bg">#141419</color>
+    <color name="xy_code_badge_bg">#222229</color>
+    <color name="xy_switch_track_off">#34343A</color>
+</resources>

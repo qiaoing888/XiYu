@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KeysCafeUnlock" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/xy_accent</item>
+        <item name="colorSurface">@color/xy_card</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Xiyu.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/XyDialogTitle</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/XyDialogBody</item>
+        <item name="colorSurfaceContainer">@color/xy_card</item>
+        <item name="colorSurfaceContainerHigh">@color/xy_card</item>
+        <item name="colorSurfaceContainerHighest">@color/xy_card</item>
+        <item name="android:colorBackground">@color/xy_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

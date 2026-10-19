@@ -1,0 +1,2 @@
+# 构建产物：体积大，不入库；用 tools/build_embedded_data.cpp 重新生成
+*.bin

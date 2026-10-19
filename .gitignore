@@ -1,0 +1,29 @@
+*.iml
+.gradle/
+**/.gradle/
+**/build/
+.cxx/
+**/.cxx/
+.idea/
+.DS_Store
+/captures
+.externalNativeBuild/
+local.properties
+**/local.properties
+
+# Built application files
+*.apk
+*.aab
+
+# Generated embedded lexicon/model (build artifact, not source)
+app/src/main/cpp/xy_embedded.bin
+docs/lexicon-build/*.bin
+
+# Keystore files
+*.jks
+*.keystore
+keystore.properties
+
+# Temporary and cache files
+*.log
+*.tmp

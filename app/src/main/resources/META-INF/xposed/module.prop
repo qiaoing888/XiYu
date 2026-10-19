@@ -1,0 +1,4 @@
+minApiVersion=101
+targetApiVersion=101
+staticScope=true
+description=三星键盘增强
