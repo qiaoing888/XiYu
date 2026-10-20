@@ -87,6 +87,12 @@ object XyCore {
     private external fun nativeDictQueryPinyin(pinyin: String, maxCount: Int): Array<String>?
 
     @JvmStatic
+    private external fun nativeDictQueryWordPrefix(prefix: String, maxCount: Int): Array<String>?
+
+    @JvmStatic
+    private external fun nativeIsValidPinyin(text: String): Boolean
+
+    @JvmStatic
     private external fun nativeLmRerank(
         pinyin: String?,
         context: String?,
@@ -183,6 +189,12 @@ object XyCore {
 
     fun dictQueryPinyin(pinyin: String, maxCount: Int = 3): List<String> =
         runCatching { nativeDictQueryPinyin(pinyin, maxCount)?.toList() }.getOrNull() ?: emptyList()
+
+    fun dictQueryWordPrefix(prefix: String, maxCount: Int = 6): List<String> =
+        runCatching { nativeDictQueryWordPrefix(prefix, maxCount)?.toList() }.getOrNull() ?: emptyList()
+
+    fun isValidPinyin(text: String): Boolean =
+        runCatching { nativeIsValidPinyin(text) }.getOrDefault(false)
 
     fun lmRerank(
         pinyin: String?,

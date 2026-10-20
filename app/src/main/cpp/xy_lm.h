@@ -49,6 +49,12 @@ inline void rerank_candidates(
 std::vector<std::string> predict_next_words(const char *context, int max_results);
 std::vector<std::string> query_dict_pinyin(const char *pinyin, int max_results);
 
+// 以已上屏的词为前缀，按词频返回联想词（如“我”->“我们/我的/我是”）
+std::vector<std::string> query_dict_word_prefix(const char *prefix, int max_results);
+
+// 校验拼音串是否能按合法音节切分；最后一段允许是不完整音节前缀
+bool is_valid_pinyin_sequence(const char *pinyin);
+
 // 查询用户自定义短语与自学习候选：code 非空时查编码词库，code 为空时仅查 @上下文 快捷短语
 std::vector<std::string> query_user_candidates(const char *code, const char *context, int max_results);
 

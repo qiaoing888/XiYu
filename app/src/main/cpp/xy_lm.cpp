@@ -1082,6 +1082,29 @@ static void save_user_memory_locked() {
 
 } // namespace
 
+bool is_valid_pinyin_sequence(const char *pinyin) {
+    std::string s = clean_pinyin_string(pinyin);
+    if (s.empty()) return false;
+    ensure_pinyin_sets_initialized();
+    size_t i = 0;
+    while (i < s.size()) {
+        size_t max_len = std::min<size_t>(6, s.size() - i);
+        size_t take = 0;
+        for (size_t len = max_len; len >= 1; --len) {
+            if (g_intact_pinyin_set.find(s.substr(i, len)) != g_intact_pinyin_set.end()) {
+                take = len;
+                break;
+            }
+        }
+        if (take == 0) {
+            // 只允许最后一段是不完整音节前缀（用户还没打完）
+            return g_prefix_pinyin_set.find(s.substr(i)) != g_prefix_pinyin_set.end();
+        }
+        i += take;
+    }
+    return true;
+}
+
 void init_lm(const char *storage_dir, const char *custom_model_path, const char *custom_dict_path) {
     {
         std::lock_guard<std::mutex> lm_lock(g_lm_mutex);
@@ -1357,8 +1380,8 @@ static void collect_prefix_offsets(const DictLayer &layer, const std::string &pr
     if (key_pos != prefix.size()) return;
     std::string cur;
     int visited = 0;
-    constexpr int MAX_PREFIX_NODES = 4096;
-    constexpr int MAX_PREFIX_KEYS = 2000;
+    constexpr int MAX_PREFIX_NODES = 16384;
+    constexpr int MAX_PREFIX_KEYS = 4096;
     dfs_collect_prefix_offsets(layer, node_pos, cur, visited, MAX_PREFIX_NODES,
                                offsets, MAX_PREFIX_KEYS);
 }
@@ -1371,7 +1394,7 @@ static void append_prefix_candidates(const std::string &prefix, int max_results,
 
     std::vector<DictCand> hits;
     constexpr int PER_KEY_TAKE = 4;
-    constexpr size_t MAX_HITS = 4096;
+    constexpr size_t MAX_HITS = 8192;
     for (const DictLayer *layer : {&g_dict_core, &g_dict_ext}) {
         if (!layer->loaded) continue;
         std::vector<int> offsets;
@@ -1434,6 +1457,86 @@ std::vector<std::string> query_dict_pinyin(const char *pinyin, int max_results) 
         append_prefix_candidates(py_clean, max_results, suppressed_snapshot, results);
     }
 
+    return results;
+}
+
+// 已上屏词 -> 多字联想词。word_trie 的 key 就是词条本身，桩节点之后收集后缀。
+static void dfs_collect_word_associations(
+    const DictLayer &layer,
+    size_t node_pos,
+    const std::string &prefix,
+    std::string &suffix,
+    int &visited,
+    int max_nodes,
+    std::vector<DictCand> &hits
+) {
+    if (visited >= max_nodes) return;
+    ++visited;
+
+    const auto *units = static_cast<const Darts::Details::DoubleArrayUnit *>(layer.word_trie.array());
+    auto unit = units[node_pos];
+    if (unit.has_leaf()) {
+        size_t leaf_pos = node_pos ^ unit.offset();
+        if (leaf_pos < layer.word_trie.size()) {
+            int val = units[leaf_pos].value();
+            if (val > 0 && !suffix.empty()) {
+                hits.push_back({prefix + suffix, static_cast<uint32_t>(val)});
+            }
+        }
+    }
+    if (suffix.size() >= 24) return;  // 最多再跟 8 个汉字
+    for (int b = 0; b < 256; ++b) {
+        size_t next_pos = node_pos ^ unit.offset() ^ static_cast<unsigned int>(b);
+        if (next_pos < layer.word_trie.size() &&
+            units[next_pos].label() == static_cast<unsigned int>(b)) {
+            suffix.push_back(static_cast<char>(b));
+            dfs_collect_word_associations(layer, next_pos, prefix, suffix, visited, max_nodes, hits);
+            suffix.pop_back();
+            if (visited >= max_nodes) break;
+        }
+    }
+}
+
+std::vector<std::string> query_dict_word_prefix(const char *prefix, int max_results) {
+    std::vector<std::string> results;
+    if (!prefix || !*prefix || max_results <= 0) return results;
+    std::string p(prefix);
+
+    std::unordered_set<std::string> suppressed_snapshot;
+    {
+        std::lock_guard<std::mutex> mem_lock(g_user_mem_mutex);
+        for (const auto &kv : g_suppressed_words) {
+            suppressed_snapshot.insert(kv.first);
+        }
+    }
+
+    std::unique_lock<std::mutex> lock(g_dict_mutex, std::defer_lock);
+    if (!g_dict_is_embedded.load(std::memory_order_relaxed)) {
+        lock.lock();
+    }
+    if (!dict_any_loaded()) return results;
+
+    std::vector<DictCand> hits;
+    for (const DictLayer *layer : {&g_dict_core, &g_dict_ext}) {
+        if (!layer->loaded) continue;
+        size_t node_pos = 0;
+        size_t key_pos = 0;
+        layer->word_trie.traverse(p.c_str(), node_pos, key_pos, p.size());
+        if (key_pos != p.size()) continue;
+        std::string suffix;
+        int visited = 0;
+        dfs_collect_word_associations(*layer, node_pos, p, suffix, visited, 8192, hits);
+    }
+    std::stable_sort(hits.begin(), hits.end(), [](const DictCand &a, const DictCand &b) {
+        return a.weight > b.weight;
+    });
+    for (const auto &hit : hits) {
+        if (static_cast<int>(results.size()) >= max_results) break;
+        if (hit.word.empty() || hit.word == p) continue;
+        if (suppressed_snapshot.find(hit.word) != suppressed_snapshot.end()) continue;
+        if (std::find(results.begin(), results.end(), hit.word) != results.end()) continue;
+        results.push_back(hit.word);
+    }
     return results;
 }
 
