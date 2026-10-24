@@ -23,6 +23,127 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
+internal fun countChineseCharacters(text: String): Int =
+    text.count { c -> c.code in 0x4E00..0x9FFF || c.code in 0x3400..0x4DBF }
+
+internal fun containsChinese(text: CharSequence?): Boolean = XyCore.containsChinese(text)
+
+internal fun hasSufficientNativeCoverage(
+    chineseCount: Int,
+    syllableMatchCount: Int,
+    expectedLength: Int
+): Boolean = chineseCount >= 5 && (expectedLength <= 0 || syllableMatchCount >= GBOARD_SLOT_COUNT)
+
+private val STANDALONE_PINYIN_SYLLABLES = setOf(
+    "a", "ai", "an", "ang", "ao",
+    "e", "ei", "en", "eng", "er",
+    "o", "ou"
+)
+
+private val PINYIN_FINALS = setOf(
+    "a", "o", "e", "i", "u", "v", "ü",
+    "ai", "ei", "ao", "ou", "an", "en", "in", "un", "vn", "ün",
+    "ang", "eng", "ing", "ong",
+    "ia", "ie", "iao", "iu", "ian", "iang", "iong",
+    "ua", "uo", "uai", "ui", "uan", "uang", "ue", "ve", "üe", "van", "üan"
+)
+
+private val W_FINALS = setOf("a", "ai", "an", "ang", "ei", "en", "eng", "o", "u")
+private val Y_FINALS = setOf("a", "an", "ang", "ao", "e", "i", "in", "ing", "o", "ong", "ou", "u", "uan", "ue", "un")
+
+private fun isValidFullPinyinSyllable(s: String): Boolean {
+    if (s.isEmpty() || s.length > 6) return false
+    if (s in STANDALONE_PINYIN_SYLLABLES) return true
+    if (s.startsWith("w")) return s.substring(1) in W_FINALS
+    if (s.startsWith("y")) return s.substring(1) in Y_FINALS
+    val rest = if (s.startsWith("zh") || s.startsWith("ch") || s.startsWith("sh")) {
+        s.substring(2)
+    } else if (s[0] in "bpmfdtnlgkhjqxrzcs") {
+        s.substring(1)
+    } else {
+        return false
+    }
+    return rest in PINYIN_FINALS
+}
+
+internal fun normalizeSpellText(rawText: String): String =
+    rawText.trim().lowercase().replace(Regex("[\\s']+"), "'").trim('\'')
+
+internal fun countQuanpinSyllables(cleanPinyin: String): Int {
+    val s = cleanPinyin.trim().lowercase().filter { it in 'a'..'z' || it == 'ü' }
+    val n = s.length
+    if (n == 0) return 0
+
+    val bestPenalty = IntArray(n + 1) { Int.MAX_VALUE / 2 }
+    val bestSyllables = IntArray(n + 1) { Int.MAX_VALUE / 2 }
+    bestPenalty[0] = 0
+    bestSyllables[0] = 0
+
+    for (i in 0 until n) {
+        val curPen = bestPenalty[i]
+        val curSyl = bestSyllables[i]
+        if (curPen >= Int.MAX_VALUE / 4) continue
+
+        val maxEnd = minOf(n, i + 6)
+        for (j in (i + 1)..maxEnd) {
+            val sub = s.substring(i, j)
+            val stepPenalty = when {
+                isValidFullPinyinSyllable(sub) -> 0
+                sub == "zh" || sub == "ch" || sub == "sh" || j == i + 1 -> 1
+                else -> continue
+            }
+            val nextPen = curPen + stepPenalty
+            val nextSyl = curSyl + 1
+            if (nextPen < bestPenalty[j] || (nextPen == bestPenalty[j] && nextSyl < bestSyllables[j])) {
+                bestPenalty[j] = nextPen
+                bestSyllables[j] = nextSyl
+            }
+        }
+    }
+    return bestSyllables[n].coerceAtLeast(1)
+}
+
+internal fun estimateSyllableCount(
+    rawSpellWithApos: String?,
+    cleanPinyin: String?,
+    quanpinMode: Boolean = true
+): Int {
+    if (cleanPinyin.isNullOrBlank()) return 0
+    if (!rawSpellWithApos.isNullOrBlank() && rawSpellWithApos.contains('\'')) {
+        val explicitCount = rawSpellWithApos.split('\'').count { it.isNotBlank() }
+        if (explicitCount > 0) return explicitCount
+    }
+    if (!quanpinMode) return 0
+    return countQuanpinSyllables(cleanPinyin)
+}
+
+internal fun <T> filterCandidatesBySyllableLength(
+    items: List<T>,
+    syllableCount: Int,
+    userShortcuts: Set<String> = emptySet(),
+    textExtractor: (T) -> String?
+): List<T> {
+    if (syllableCount <= 0 || items.isEmpty()) return items
+
+    // 严禁出现 > syllableCount 的跨长度联想词；保留 <= syllableCount 的真实字词并按字长层级从长到短稳定排列
+    val boundedMatches = items.filter { item ->
+        val text = textExtractor(item) ?: return@filter true
+        if (text in userShortcuts) return@filter true
+        val zhCount = countChineseCharacters(text)
+        zhCount in 0..syllableCount
+    }
+    if (boundedMatches.isEmpty()) return items
+
+    return boundedMatches.sortedByDescending { item ->
+        val text = textExtractor(item) ?: return@sortedByDescending 0
+        if (text in userShortcuts) {
+            Int.MAX_VALUE
+        } else {
+            countChineseCharacters(text)
+        }
+    }
+}
+
 /**
  * 语言模型与词库候选词 Hook
  * 1. 支持「通用智能记忆与重排（适用全拼/双拼/五笔）」与「全拼整句与词库增强（全拼专属）」双模式独立控制
@@ -88,6 +209,7 @@ object LmCandidateHooks {
     // 候选词构造器持久句柄缓存
     private var modernBuilderConstructor: Constructor<*>? = null
     private var modernBuilderDMethod: Method? = null
+    private var modernBuilderNMethod: Method? = null
     private var modernBuilderBuildMethod: Method? = null
 
     private var legacyBuilderConstructor: Constructor<*>? = null
@@ -114,11 +236,11 @@ object LmCandidateHooks {
     // 最近一次传给三星候选管线的列表，用于上屏后主动移除注入项
     @Volatile
     private var lastEmittedListRef: WeakReference<MutableList<Any>>? = null
-    // 保存每次 eb0.a.l / f50.a.a 进入时的原生候选快照，供延迟拼写修正重算使用
+    // 保存每次 eb0.a.l / f50.a.a 进入时的原生候选快照与时间戳，供拼写修正重算使用
     @Volatile
     private var lastRawNativeList: List<Any>? = null
-    // 原生快照对应的拼写；拼写变化后旧快照不能作为新一次补偿的基底
-    private var lastRawNativeSpell = ""
+    @Volatile
+    private var lastRawNativeTime = 0L
     // 保存 setSpellText 最新调用值，用于检测时序差一拍后补推候选
     @Volatile
     private var latestSpellText: String = ""
@@ -176,7 +298,17 @@ object LmCandidateHooks {
     @Volatile
     private var isSpellComposingActive = false
     @Volatile
-    private var spellViewModelRef: WeakReference<Any>? = null
+    private var spellTextViewModelRef: WeakReference<Any>? = null
+    @Volatile
+    private var isChinesePinyinKeypadMethod: Method? = null
+    @Volatile
+    private var cachedIsChinese: Boolean = false
+    @Volatile
+    private var lastLanguageCheckTime: Long = 0L
+
+    internal fun invalidateLanguageCache() {
+        lastLanguageCheckTime = 0L
+    }
 
     private data class SyntheticInfo(
         val text: String,
@@ -188,21 +320,6 @@ object LmCandidateHooks {
     private var lastSyntheticCode: String = ""
     private val syntheticCandidates = Collections.synchronizedMap(WeakHashMap<Any, SyntheticInfo>())
     private var suggestionField: Field? = null
-
-    // 原生候选反馈（键盘按键音/振动）懒加载句柄
-    private var feedbackLoader: ClassLoader? = null
-    private var vibInstance: Any? = null
-    private var vibMethod: Method? = null
-    private var soundInstance: Any? = null
-    private var soundMethod: Method? = null
-
-    private data class PartialCommit(val consumed: String, val remainder: String)
-
-    // 部分上屏后由模块接管的剩余拼音（显示在左上角拼音框，可退格修改）
-    @Volatile
-    private var managedRemainder: String = ""
-    @Volatile
-    private var isInternalRemainderSet: Boolean = false
 
     const val ACTION_CLEAR_LM_MEMORY = "com.keyscafe.unlock.ACTION_CLEAR_LM_MEMORY"
     const val ACTION_SYNC_USER_LEXICON = "com.keyscafe.unlock.ACTION_SYNC_USER_LEXICON"
@@ -222,7 +339,7 @@ object LmCandidateHooks {
         latestSpellText = ""
         lastProcessedPinyin = ""
         lastRawNativeList = emptyList()
-        lastRawNativeSpell = ""
+        lastRawNativeTime = 0L
         lastKnownContextBefore = ""
         lastCommittedWord = ""
         lastCommittedPinyin = ""
@@ -292,17 +409,47 @@ object LmCandidateHooks {
     }
 
     private fun hookSpellTextViewModel(module: XposedModule, classLoader: ClassLoader) {
+        val spellVmName = "com.samsung.android.honeyboard.textboard.candidate.viewmodel.SpellTextViewModel"
+        val spellVmCls = Reflect.findClassIfExists(spellVmName, classLoader)
+        if (spellVmCls != null) {
+            isChinesePinyinKeypadMethod = runCatching {
+                spellVmCls.getDeclaredMethod("isChinesePinyinKeypad").apply { isAccessible = true }
+            }.getOrNull()
+        }
+
+        // 监听配置/语言变化回调，实时失效语言状态缓存
+        val listenerCls = Reflect.findClassIfExists(
+            "com.samsung.android.honeyboard.textboard.candidate.viewmodel.SpellTextViewModel\$a",
+            classLoader
+        )
+        listenerCls?.declaredMethods?.firstOrNull {
+            it.name == "onBoardConfigChanged" && it.parameterTypes.size == 3
+        }?.let { m ->
+            XLog.safe("LmCandidateHooks.onBoardConfigChanged") {
+                module.hook(m).intercept { chain ->
+                    invalidateLanguageCache()
+                    chain.proceed()
+                }
+            }
+        }
+
         val targets = listOf(
-            "com.samsung.android.honeyboard.textboard.candidate.viewmodel.SpellTextViewModel",
+            spellVmName,
             "com.samsung.android.honeyboard.textboard.candidate.viewmodel.PhoneticSpellViewModel"
         )
         for (name in targets) {
             val cls = Reflect.findClassIfExists(name, classLoader) ?: continue
+            val isMainSpellVm = (name == spellVmName)
             for (ctor in cls.declaredConstructors) {
                 XLog.safe("LmCandidateHooks.spellVm.$name.ctor") {
                     module.hook(ctor).intercept { chain ->
                         val r = chain.proceed()
-                        (chain.thisObject ?: r)?.let { spellViewModelRef = WeakReference(it) }
+                        if (isMainSpellVm) {
+                            (chain.thisObject ?: r)?.let {
+                                spellTextViewModelRef = WeakReference(it)
+                                invalidateLanguageCache()
+                            }
+                        }
                         r
                     }
                 }
@@ -314,21 +461,29 @@ object LmCandidateHooks {
                 }.getOrNull()
                 XLog.safe("LmCandidateHooks.spellVm.$name.setSpell") {
                     module.hook(m).intercept { chain ->
-                        chain.thisObject?.let { spellViewModelRef = WeakReference(it) }
-                        // 字段解析失败时不要在每次 setSpell 都把组合态清空
-                        val raw = spellField?.let {
-                            runCatching { it.get(chain.getArg(0))?.toString() }.getOrNull()
+                        if (isMainSpellVm) {
+                            chain.thisObject?.let { spellTextViewModelRef = WeakReference(it) }
                         }
-                        val r = chain.proceed()
-                        if (raw != null) onSpellTextChanged(raw, classLoader)
-                        r
+                        val arg = chain.getArg(0)
+                        if (arg == null) {
+                            invalidateLanguageCache()
+                            onSpellTextChanged("", classLoader)
+                        } else {
+                            val raw = spellField?.let {
+                                runCatching { it.get(arg)?.toString() }.getOrNull()
+                            }
+                            if (raw != null) onSpellTextChanged(raw, classLoader)
+                        }
+                        chain.proceed()
                     }
                 }
             }
             cls.declaredMethods.firstOrNull { it.name == "getSpellText" }?.let { m ->
                 XLog.safe("LmCandidateHooks.spellVm.$name.getSpellText") {
                     module.hook(m).intercept { chain ->
-                        chain.thisObject?.let { spellViewModelRef = WeakReference(it) }
+                        if (isMainSpellVm) {
+                            chain.thisObject?.let { spellTextViewModelRef = WeakReference(it) }
+                        }
                         chain.proceed()
                     }
                 }
@@ -337,7 +492,9 @@ object LmCandidateHooks {
             cls.declaredMethods.firstOrNull { it.name == "setSpellText" && it.parameterTypes.size == 1 }?.let { m ->
                 XLog.safe("LmCandidateHooks.spellVm.$name.setSpellText") {
                     module.hook(m).intercept { chain ->
-                        chain.thisObject?.let { spellViewModelRef = WeakReference(it) }
+                        if (isMainSpellVm) {
+                            chain.thisObject?.let { spellTextViewModelRef = WeakReference(it) }
+                        }
                         val text = chain.getArg(0)?.toString()?.trim().orEmpty()
                         val r = chain.proceed()
                         onSpellTextChanged(text, classLoader)
@@ -358,6 +515,7 @@ object LmCandidateHooks {
                                 currentActivePinyin = ""
                                 latestSpellText = ""
                                 lastProcessedPinyin = ""
+                                lastRawNativeTime = 0L
                             }
                             chain.proceed()
                         }
@@ -369,19 +527,17 @@ object LmCandidateHooks {
 
     // 拼写文本变化统一入口：更新组合态；若晚于 eb0.a.l 到达，立即用最新拼写重算候选
     private fun onSpellTextChanged(rawText: String, classLoader: ClassLoader) {
-        val normalized = rawText.replace(" ", "").lowercase()
-        val clean = normalized.replace("'", "")
-        // 模块自己回填的剩余拼音只更新状态，不再触发重算
-        if (isInternalRemainderSet) {
-            latestSpellText = normalized
-            currentActivePinyin = clean
-            isSpellComposingActive = clean.isNotEmpty()
+        if (!isChineseLanguageActive(classLoader)) {
+            latestSpellText = ""
+            isSpellComposingActive = false
+            currentActivePinyin = ""
+            lastProcessedPinyin = ""
+            lastRawNativeList = emptyList()
+            lastRawNativeTime = 0L
             return
         }
-        // 用户开始新的按键输入后，放弃模块接管的剩余拼音
-        if (managedRemainder.isNotEmpty() && clean != managedRemainder) {
-            managedRemainder = ""
-        }
+        val normalized = normalizeSpellText(rawText)
+        val clean = normalized.replace("'", "")
         // 上屏后 220ms 内，若回调仍是刚上屏拼音的残影，忽略本次更新，
         // 避免重新置位组合态后卡住 35ms 的 @上文 主动推送
         val ghostAfterCommit = clean.isNotEmpty() &&
@@ -394,6 +550,7 @@ object LmCandidateHooks {
             currentActivePinyin = clean
             if (clean.isEmpty()) {
                 lastProcessedPinyin = ""
+                lastRawNativeTime = 0L
             }
         }
         if (!ghostAfterCommit && clean.isNotEmpty() && clean != lastProcessedPinyin) {
@@ -414,6 +571,7 @@ object LmCandidateHooks {
         if (buildersInitialized) return
         modernBuilderConstructor = null
         modernBuilderDMethod = null
+        modernBuilderNMethod = null
         modernBuilderBuildMethod = null
         legacyBuilderConstructor = null
         legacyBuilderBMethod = null
@@ -431,12 +589,16 @@ object LmCandidateHooks {
             val dMethod = runCatching {
                 cls.getMethod("D", CharSequence::class.java).apply { isAccessible = true }
             }.getOrNull()
+            val nMethod = runCatching {
+                cls.getMethod("N", String::class.java).apply { isAccessible = true }
+            }.getOrNull()
             val buildMethod = runCatching {
                 cls.getMethod("a").apply { isAccessible = true }
             }.getOrNull()
             if (ctor != null && dMethod != null && buildMethod != null) {
                 modernBuilderConstructor = ctor
                 modernBuilderDMethod = dMethod
+                modernBuilderNMethod = nMethod
                 modernBuilderBuildMethod = buildMethod
                 modernReady = true
             }
@@ -483,7 +645,7 @@ object LmCandidateHooks {
         }
 
         var im: Method? = null
-        for (mName in listOf("d", "j", "getInput", "a")) {
+        for (mName in listOf("j", "getInput", "d", "a")) {
             try {
                 im = cls.getMethod(mName).apply { isAccessible = true }
                 break
@@ -491,7 +653,7 @@ object LmCandidateHooks {
         }
         var inf: Field? = null
         if (im == null) {
-            for (fName in listOf("c", "f", "mInput")) {
+            for (fName in listOf("u", "c", "f", "mInput")) {
                 try {
                     inf = cls.getDeclaredField(fName).apply { isAccessible = true }
                     break
@@ -523,6 +685,8 @@ object LmCandidateHooks {
         val accessor = accessorMap.computeIfAbsent(item.javaClass) { resolveAccessor(it) }
         return accessor.getText(item)
     }
+
+    internal fun getCandidateTextForLayout(item: Any): String? = getCandidateText(item)
 
     private fun getCandidateInput(item: Any): String? {
         val accessor = accessorMap.computeIfAbsent(item.javaClass) { resolveAccessor(it) }
@@ -576,7 +740,57 @@ object LmCandidateHooks {
     // 分句截断与中文判定由 native 实现，与词库侧的边界规则保持一致
     private fun truncateToSentence(ctx: String): String = XyCore.truncateSentence(ctx)
 
-    private fun containsChinese(text: CharSequence?): Boolean = XyCore.containsChinese(text)
+    internal fun isChineseLanguageActive(classLoader: ClassLoader? = null): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastLanguageCheckTime < 250L) {
+            return cachedIsChinese
+        }
+        val isZh = queryIsChineseActive(classLoader)
+        cachedIsChinese = isZh
+        lastLanguageCheckTime = now
+        return isZh
+    }
+
+    private fun queryIsChineseActive(classLoader: ClassLoader? = null): Boolean {
+        // 1. 优先通过 SpellTextViewModel.isChinesePinyinKeypad()
+        val vm = spellTextViewModelRef?.get()
+        if (vm != null) {
+            var m = isChinesePinyinKeypadMethod
+            if (m == null) {
+                m = runCatching {
+                    vm.javaClass.declaredMethods.firstOrNull {
+                        it.returnType == java.lang.Boolean.TYPE &&
+                            it.parameterTypes.isEmpty() &&
+                            it.name.contains("Chinese", ignoreCase = true)
+                    }?.apply { setAccessible(true) }
+                }.getOrNull()
+                isChinesePinyinKeypadMethod = m
+            }
+            if (m != null) {
+                val result = runCatching { m.invoke(vm) as? Boolean }.getOrNull()
+                if (result != null) return result
+            }
+        }
+
+        // 2. 检查系统标准 InputMethodSubtype (无反射、极速)
+        val service = serviceRef?.get()
+        if (service != null) {
+            val imm = ContextCompat.getSystemService(service, android.view.inputmethod.InputMethodManager::class.java)
+            val subtype = runCatching { imm?.currentInputMethodSubtype }.getOrNull()
+            if (subtype != null) {
+                val tag = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    subtype.languageTag.ifEmpty { subtype.locale }
+                } else {
+                    subtype.locale
+                }
+                if (tag.isNotEmpty()) {
+                    return tag.startsWith("zh", ignoreCase = true)
+                }
+            }
+        }
+
+        return false
+    }
 
     // 1. 获取输入法 Service 引用与生命周期
     private fun hookHoneyBoardService(module: XposedModule, classLoader: ClassLoader) {
@@ -726,10 +940,10 @@ object LmCandidateHooks {
         )?.let { m ->
             XLog.safe("LmCandidateHooks.onStartInputView") {
                 module.hook(m).intercept { chain ->
-                    ensureFeedbackHandles(classLoader)
                     synchronized(journalLock) {
                         commitJournal.clear()
                     }
+                    invalidateLanguageCache()
                     currentActivePinyin = ""
                     lastKnownContextBefore = ""
                     lastCommittedWord = ""
@@ -739,7 +953,7 @@ object LmCandidateHooks {
                     latestSpellText = ""
                     lastProcessedPinyin = ""
                     lastRawNativeList = emptyList()
-                    lastRawNativeSpell = ""
+                    lastRawNativeTime = 0L
                     lastInjectionNeedsReemit = false
                     lastInjectionCode = null
                     lastContextPushTimestamp = 0L
@@ -816,10 +1030,24 @@ object LmCandidateHooks {
                         @Suppress("UNCHECKED_CAST")
                         val rawList = chain.getArg(0) as? List<Any>
                         val slot = chain.getArg(1) as? Int ?: 0
+                        val rawHasChinese = rawList?.any { containsChinese(getCandidateText(it).orEmpty()) } == true
+                        val isZh = isChineseLanguageActive(classLoader) || rawHasChinese
+                        if (rawHasChinese) {
+                            cachedIsChinese = true
+                            lastLanguageCheckTime = System.currentTimeMillis()
+                        }
+                        if (!isZh) {
+                            latestSpellText = ""
+                            currentActivePinyin = ""
+                            isSpellComposingActive = false
+                            lastRawNativeList = emptyList()
+                            lastRawNativeTime = 0L
+                            return@intercept chain.proceed()
+                        }
                         if ((ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode) && rawList != null) {
                             // 注入前保存原生快照，供拼写修正重推使用
                             lastRawNativeList = ArrayList<Any>(rawList)
-                            lastRawNativeSpell = latestSpellText
+                            lastRawNativeTime = System.currentTimeMillis()
                             lastRawSlot = slot
                             val workingList = ArrayList<Any>(rawList)
                             val changed = processCandidates(workingList, classLoader)
@@ -872,10 +1100,24 @@ object LmCandidateHooks {
                         }
                         @Suppress("UNCHECKED_CAST")
                         val rawList = chain.getArg(0) as? List<Any>
+                        val rawHasChinese = rawList?.any { containsChinese(getCandidateText(it).orEmpty()) } == true
+                        val isZh = isChineseLanguageActive(classLoader) || rawHasChinese
+                        if (rawHasChinese) {
+                            cachedIsChinese = true
+                            lastLanguageCheckTime = System.currentTimeMillis()
+                        }
+                        if (!isZh) {
+                            latestSpellText = ""
+                            currentActivePinyin = ""
+                            isSpellComposingActive = false
+                            lastRawNativeList = emptyList()
+                            lastRawNativeTime = 0L
+                            return@intercept chain.proceed()
+                        }
                         if ((ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode) && rawList != null) {
                             // 注入前保存原生快照，供拼写修正重推使用
                             lastRawNativeList = ArrayList<Any>(rawList)
-                            lastRawNativeSpell = latestSpellText
+                            lastRawNativeTime = System.currentTimeMillis()
                             lastRawSlot = 0
                             val workingList = ArrayList<Any>(rawList)
                             val changed = processCandidates(workingList, classLoader)
@@ -974,132 +1216,6 @@ object LmCandidateHooks {
             variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
     }
 
-    // 每个键的邻居按“左右水平 -> 上下 -> 斜向”排序，越靠前越像误触
-    private val QWERTY_NEIGHBORS: Map<Char, String> = mapOf(
-        'q' to "was", 'w' to "qeasd", 'e' to "wrsdf", 'r' to "etdfg", 't' to "ryfgh",
-        'y' to "tughj", 'u' to "yihjk", 'i' to "uojkl", 'o' to "ipkl", 'p' to "ol",
-        'a' to "sqwzx", 's' to "dawezxc", 'd' to "fserxcv", 'f' to "gdrtcvb",
-        'g' to "hftyvbn", 'h' to "jgyubnm", 'j' to "khuinm", 'k' to "ljiom", 'l' to "kop",
-        'z' to "xas", 'x' to "zcsda", 'c' to "xvsdf", 'v' to "bcdfg", 'b' to "vnfgh",
-        'n' to "bmghj", 'm' to "nhjk"
-    )
-
-    // 错键/换位候选：先交换相邻字母（如 hoa -> hao），再按最近输入位置做单键替换
-    private fun typoVariants(py: String, maxNeighbors: Int = 5): List<String> {
-        val out = LinkedHashSet<String>()
-        // 从末尾开始交换：hoa -> hao 优先于 oha
-        for (i in py.length - 2 downTo 0) {
-            if (py[i] != py[i + 1]) {
-                out.add(py.substring(0, i) + py[i + 1] + py[i] + py.substring(i + 2))
-            }
-        }
-        for (i in py.indices.reversed()) {
-            val neighbors = QWERTY_NEIGHBORS[py[i]] ?: continue
-            for (n in neighbors.take(maxNeighbors)) {
-                out.add(py.substring(0, i) + n + py.substring(i + 1))
-                if (out.size >= 24) return out.toList()
-            }
-        }
-        return out.toList()
-    }
-
-    private fun addTypoHints(
-        py: String,
-        classLoader: ClassLoader,
-        syntheticList: ArrayList<Any>,
-        existing: HashSet<String>,
-        candidateInput: String,
-        typoWords: MutableList<String>
-    ) {
-        var added = 0
-        var queries = 0
-        for (variant in typoVariants(py)) {
-            if (added >= 6 || queries >= 8) break
-            // 过滤 adz / dza 这类无法按拼音音节切分的乱序结果
-            if (!XyCore.isValidPinyin(variant)) continue
-            queries++
-            for (w in XyCore.dictQueryPinyin(variant, 3)) {
-                if (added >= 6) break
-                if (w.isBlank() || existing.contains(w)) continue
-                val cand = createCandidate(classLoader, w, candidateInput) ?: continue
-                syntheticList.add(cand)
-                existing.add(w)
-                typoWords.add(w)
-                added++
-                XLog.i("错键/换位联想: [$py -> $variant] -> '$w'")
-                break
-            }
-        }
-    }
-
-    /**
-     * 多音节纠错：只修正不合法的音节，再用修正后的完整拼音查整句/短语。
-     * 例如 hao'de'vao'bei -> hao'de'bao'bei -> 好的宝贝；xnig -> xing。
-     */
-    private fun addSegmentTypoHints(
-        rawSpell: String?,
-        py: String,
-        contextBefore: String,
-        classLoader: ClassLoader,
-        syntheticList: ArrayList<Any>,
-        existing: HashSet<String>,
-        candidateInput: String,
-        typoWords: MutableList<String>
-    ) {
-        val raw = rawSpell?.lowercase()?.replace(" ", "")?.trim()
-        val segments = if (!raw.isNullOrBlank() && raw.contains('\'')) {
-            raw.split('\'').filter { it.isNotBlank() }
-        } else {
-            listOf(py)
-        }
-        if (segments.isEmpty()) return
-
-        val badIndices = segments.indices.filter { !XyCore.isValidPinyin(segments[it]) }
-        if (badIndices.isEmpty()) return
-
-        var queries = 0
-        var added = 0
-        for (idx in badIndices) {
-            val seg = segments[idx]
-            var segQueries = 0
-            // 音节内纠错优先只尝试左右相邻键，减少 gao -> 高倍 这类连带误判
-            for (variant in typoVariants(seg, maxNeighbors = 2)) {
-                if (queries >= 12 || added >= 8) return
-                if (variant == seg || !XyCore.isValidPinyin(variant)) continue
-                queries++
-                segQueries++
-                val corrected = segments.toMutableList().also { it[idx] = variant }
-                val clean = corrected.joinToString("")
-                val decoded = XyCore.lmDecodeSentence(contextBefore, corrected.joinToString("'")).orEmpty()
-
-                // 用修正音节附近的真实词条校验整句，避免解出“好的草被”这类错误组合
-                val windowStart = if (idx < corrected.size - 1) idx else maxOf(0, idx - 1)
-                val windowEnd = if (idx < corrected.size - 1) minOf(corrected.size, idx + 2) else idx + 1
-                val windowPinyin = corrected.subList(windowStart, windowEnd).joinToString("")
-                val windowWords = XyCore.dictQueryPinyin(windowPinyin, 6)
-                val minLen = if (windowEnd - windowStart == 1) 1 else 2
-                val accepted = decoded.isNotBlank() &&
-                    windowWords.any { it.length >= minLen && decoded.contains(it) }
-                if (!accepted) continue
-
-                val candidates = LinkedHashSet<String>()
-                if (decoded.isNotBlank()) candidates.add(decoded)
-                candidates.addAll(XyCore.dictQueryPinyin(clean, 6))
-                for (w in candidates) {
-                    if (added >= 8) break
-                    if (existing.contains(w)) continue
-                    val cand = createCandidate(classLoader, w, candidateInput) ?: continue
-                    syntheticList.add(cand)
-                    existing.add(w)
-                    typoWords.add(w)
-                    added++
-                    XLog.i("音节纠错入池: [${segments.joinToString("'")} -> ${corrected.joinToString("'")}] -> '$w'")
-                }
-                if (segQueries >= 4) break
-            }
-        }
-    }
-
     /**
      * 处理候选词列表（支持非空重排与上屏闲置态 @上文 短语空列表注入）
      * @return 列表是否发生变更
@@ -1111,6 +1227,7 @@ object LmCandidateHooks {
         runCatching {
             val service = serviceRef?.get() ?: return false
             if (isLmUnsupportedInputType(service.currentInputEditorInfo)) return false
+            if (!isChineseLanguageActive(classLoader)) return false
 
             val ic = service.currentInputConnection
             val rawContext = ic?.getTextBeforeCursor(32, 0)?.toString() ?: ""
@@ -1158,14 +1275,14 @@ object LmCandidateHooks {
             }
 
             if (cleanPinyinInput.isNullOrBlank()) {
-                spellViewModelRef?.get()?.let { vm ->
+                spellTextViewModelRef?.get()?.let { vm ->
                     val spellText = runCatching {
                         val m = vm.javaClass.getMethod("getSpellText")
-                        m.isAccessible = true
+                        m.setAccessible(true)
                         m.invoke(vm)?.toString()
                     }.getOrNull()
                     if (!spellText.isNullOrBlank()) {
-                        val normalized = spellText.trim().replace(" ", "").lowercase()
+                        val normalized = normalizeSpellText(spellText)
                         val clean = normalized.replace("'", "")
                         // 若刚完成上屏 (< 220ms) 且当前 spellText 与刚上屏词的拼音完全相同，或者拼写框已隐藏且候选词无 input 编码，判定为残影并丢弃
                         val isStaleGhostAfterCommit = (
@@ -1181,7 +1298,7 @@ object LmCandidateHooks {
             }
 
             if (cleanPinyinInput.isNullOrBlank() && !nativeInputCode.isNullOrBlank()) {
-                val normalized = nativeInputCode.replace(" ", "").lowercase()
+                val normalized = normalizeSpellText(nativeInputCode)
                 cleanPinyinInput = normalized.replace("'", "")
                 rawSpellWithApos = normalized
             }
@@ -1195,14 +1312,17 @@ object LmCandidateHooks {
             lastProcessedPinyin = py ?: ""
 
             // 3. 保护英文输入：无候选汉字、无中文语境、且无有效按键拼音时直接跳过
-            var hasChineseInList = false
+            //    同时构建去重集并统计原生中文候选数，避免后续二次遍历
+            var chineseInListCount = 0
+            val existing = HashSet<String>(list.size + 8)
             for (item in list) {
                 val text = getCandidateText(item) ?: continue
+                existing.add(text)
                 if (containsChinese(text)) {
-                    hasChineseInList = true
-                    break
+                    chineseInListCount++
                 }
             }
+            val hasChineseInList = chineseInListCount > 0
 
             val hasChineseContext = containsChinese(contextBefore)
             val hasPinyin = !py.isNullOrBlank()
@@ -1215,32 +1335,46 @@ object LmCandidateHooks {
             val quanpinEnabled = ConfigStore.lmQuanpinMode
             XyCore.lmSetQuanpinMode(quanpinEnabled)
 
-            val wasInitiallyEmpty = list.isEmpty()
-            val nativeCandidateCount = list.size
+            val syllableCount = estimateSyllableCount(pyForSentence, py, quanpinEnabled)
 
-            // 4. 统一候选池聚合与去重
-            val existing = HashSet<String>(list.size + 8)
-            for (item in list) {
-                getCandidateText(item)?.let { existing.add(it) }
+            val wasInitiallyEmpty = list.isEmpty()
+
+            // 原生候选已有充足中文覆盖时跳过词库/整句额外注入，仅保留个人词库直推
+            // 避免在三星引擎已给出良好结果时注入冗余候选，保持候选栏自然简洁
+            val nativeSyllableMatchCount = if (syllableCount > 0) {
+                list.count { item ->
+                    val text = getCandidateText(item)
+                    text != null && countChineseCharacters(text) == syllableCount
+                }
+            } else {
+                chineseInListCount
             }
+            val nativeSufficient =
+                hasSufficientNativeCoverage(chineseInListCount, nativeSyllableMatchCount, syllableCount)
 
             val syntheticList = ArrayList<Any>()
-            val typoHintWords = ArrayList<String>()
-            var preferredDictWord: String? = null
+            val userShortcuts = HashSet<String>(4)
+            synchronized(syntheticCandidates) {
+                syntheticCandidates.clear()
+            }
 
             // 4.0 个人词库与自定义短语直推 (含按键编码短语 dz -> 地址，以及上文语境短语 @收到 -> 请查收)
             // 有按键编码时不过滤刚上屏的词：同一编码连续输入是本模块的核心场景，
             // 过滤会导致第二次输入时快捷短语不再出现
             val skipLastCommitted = py.isNullOrBlank()
+            val queryKey = if (!pyForSentence.isNullOrBlank()) pyForSentence else py
             if (universalEnabled) {
-                val userWords = XyCore.lmQueryUserCandidates(py, contextBefore, 3)
+                val userWords = XyCore.lmQueryUserCandidates(queryKey, contextBefore, 2)
                 for (w in userWords) {
-                    if (w.isNotBlank() && !(skipLastCommitted && w == lastCommittedWord) && !existing.contains(w)) {
-                        val newCand = createCandidate(classLoader, w, py ?: "")
-                        if (newCand != null) {
-                            syntheticList.add(newCand)
-                            existing.add(w)
-                            XLog.i("个人词库/快捷短语入池: [code: '$py', ctx: '$contextBefore'] -> '$w'")
+                    if (w.isNotBlank() && !(skipLastCommitted && w == lastCommittedWord)) {
+                        userShortcuts.add(w)
+                        if (!existing.contains(w)) {
+                            val newCand = createCandidate(classLoader, w, py ?: "")
+                            if (newCand != null) {
+                                syntheticList.add(newCand)
+                                existing.add(w)
+                                XLog.i("个人词库/快捷短语入池: [code: '$py', ctx: '$contextBefore'] -> '$w'")
+                            }
                         }
                     }
                 }
@@ -1252,10 +1386,12 @@ object LmCandidateHooks {
             }
 
             // 4.1 全拼词格整句求解 (双拼/五笔关闭 lmQuanpinMode 时跳过)
-            if (quanpinEnabled && XyCore.isDictReady() && !pyForSentence.isNullOrBlank() && py != null && py.length >= 4) {
+            // 严格要求整句字数与当前输入音节数一致，防止跨长度联想到更长短语
+            if (quanpinEnabled && !nativeSufficient && XyCore.isDictReady() && !pyForSentence.isNullOrBlank() && py != null && py.length >= 6) {
                 val decodedSentence = XyCore.lmDecodeSentence(contextBefore, pyForSentence)
-                if (!decodedSentence.isNullOrBlank()) {
-                    if (!existing.contains(decodedSentence)) {
+                if (!decodedSentence.isNullOrBlank() && decodedSentence.length <= 24) {
+                    val decodedLen = countChineseCharacters(decodedSentence)
+                    if ((syllableCount <= 0 || decodedLen == syllableCount) && !existing.contains(decodedSentence)) {
                         val newCand = createCandidate(classLoader, decodedSentence, candidateInput)
                         if (newCand != null) {
                             syntheticList.add(newCand)
@@ -1266,83 +1402,26 @@ object LmCandidateHooks {
                 }
             }
 
-            // 4.2 全拼词库前缀匹配 (非全拼模式跳过)
-            if (quanpinEnabled && XyCore.isDictReady() && !py.isNullOrBlank()) {
-                // 取足同音字词与前缀联想词，展开候选面板里可以继续往下翻
-                val dictWords = XyCore.dictQueryPinyin(py, 200)
-                if (dictWords.isNotEmpty()) {
-                    preferredDictWord = dictWords.firstOrNull()
-                    for (w in dictWords) {
-                        if (!existing.contains(w) && w.isNotBlank()) {
-                            val newCand = createCandidate(classLoader, w, candidateInput)
-                            if (newCand != null) {
-                                syntheticList.add(newCand)
-                                existing.add(w)
-                                XLog.i("全拼词库候选入池: [$py] -> '$w'")
-                            }
+            // 4.2 全拼词库真实词条与前缀单字补齐 (非全拼模式跳过；原生候选已充足时跳过)
+            if (quanpinEnabled && !nativeSufficient && XyCore.isDictReady() && !py.isNullOrBlank()) {
+                val dictWords = XyCore.dictQueryPinyin(queryKey ?: py, 24)
+                for (w in dictWords) {
+                    if (w.isBlank() || existing.contains(w)) continue
+                    val cCount = countChineseCharacters(w)
+                    if (syllableCount > 0) {
+                        // 原生候选已有中文且音节数 >= 2 时，仅注入完整音节长度词条，
+                        // 短于当前音节的前缀单字保留给原生引擎进行分步选词
+                        if (hasChineseInList && syllableCount >= 2) {
+                            if (cCount != syllableCount) continue
+                        } else if (cCount !in 1..syllableCount) {
+                            continue
                         }
                     }
-                }
-
-                // 多音节长编码候选过少时，逐级缩短音节前缀补联想：
-                // hao'hao'hao 只有“好好好”时，继续补 haohao / hao 下的词
-                if (existing.size < 6) {
-                    val syllables = pyForSentence
-                        ?.replace(" ", "")
-                        ?.lowercase()
-                        ?.split('\'')
-                        ?.filter { it.isNotBlank() }
-                        .orEmpty()
-                    if (syllables.size >= 2) {
-                        var added = 0
-                        var cut = syllables.size - 1
-                        while (cut >= 1 && added < 24) {
-                            val prefix = syllables.subList(0, cut).joinToString("")
-                            if (prefix.length >= 2) {
-                                for (w in XyCore.dictQueryPinyin(prefix, 12)) {
-                                    if (added >= 24) break
-                                    if (w.isNotBlank() && !existing.contains(w)) {
-                                        val newCand = createCandidate(classLoader, w, candidateInput)
-                                        if (newCand != null) {
-                                            syntheticList.add(newCand)
-                                            existing.add(w)
-                                            added++
-                                            XLog.i("缩短前缀联想入池: [$prefix -> $py] -> '$w'")
-                                        }
-                                    }
-                                }
-                            }
-                            cut--
-                        }
-                    }
-                }
-
-                // 编码尚未完整或无效时才纠正：daz -> dax，hoa -> hao。
-                // 以元音/n/g/r 结尾视为完整音节（如 shi/hao），避免正常输入被误触候选污染。
-                val typoEligible = py.length in 3..8 && nativeCandidateCount < 8 &&
-                    (!XyCore.isValidPinyin(py) || py.last() !in "aeiouvngr")
-                if (universalEnabled && typoEligible && py.all { it in 'a'..'z' }) {
-                    addTypoHints(py, classLoader, syntheticList, existing, candidateInput, typoHintWords)
-                }
-                if (universalEnabled) {
-                    addSegmentTypoHints(
-                        pyForSentence, py, contextBefore, classLoader, syntheticList, existing,
-                        candidateInput, typoHintWords
-                    )
-                }
-            }
-
-            // 4.3 纯联想态下一词预测
-            if (universalEnabled && ConfigStore.lmNextWord && py.isNullOrBlank() && contextBefore.isNotBlank()) {
-                val nextWords = XyCore.lmPredictNext(contextBefore, 2)
-                for (w in nextWords) {
-                    if (!existing.contains(w) && w.isNotBlank() && w != lastCommittedWord) {
-                        val newCand = createCandidate(classLoader, w)
-                        if (newCand != null) {
-                            syntheticList.add(newCand)
-                            existing.add(w)
-                            XLog.i("下一词预测入池: [ctx: '$contextBefore'] -> '$w'")
-                        }
+                    val newCand = createCandidate(classLoader, w, candidateInput)
+                    if (newCand != null) {
+                        syntheticList.add(newCand)
+                        existing.add(w)
+                        XLog.i("全拼词库候选入池: [$py] -> '$w'")
                     }
                 }
             }
@@ -1365,7 +1444,21 @@ object LmCandidateHooks {
 
             if (list.isEmpty()) return false
 
-            // 5. 候选词统一综合打分重排 (含 N-gram 语境消歧、个人记忆提权、防复发坏词压制与翻转门禁)
+            // 5. 按拼音音节数严格过滤跨长度联想（杜绝 > syllableCount 的候选），并按全长 -> 前缀词 -> 单字层级排序
+            if (syllableCount > 0) {
+                val before = list.size
+                val filtered = filterCandidatesBySyllableLength(list, syllableCount, userShortcuts) { item ->
+                    getCandidateText(item)
+                }
+                if (filtered.isNotEmpty() && filtered != list) {
+                    list.clear()
+                    list.addAll(filtered)
+                    listModified = true
+                    XLog.i("音节长度层级过滤: syllables=$syllableCount, $before -> ${filtered.size}")
+                }
+            }
+
+            // 6. 候选词统一综合打分重排 (含 N-gram 语境消歧、个人记忆提权、防复发坏词压制与翻转门禁)
             val candTexts = Array(list.size) { i ->
                 getCandidateText(list[i]) ?: ""
             }
@@ -1373,7 +1466,7 @@ object LmCandidateHooks {
                 isCandidateUserLearned(list[i])
             }
 
-            val reorderedIndices = XyCore.lmRerank(py, contextBefore, candTexts, isLearnedArray)
+            val reorderedIndices = XyCore.lmRerank(queryKey ?: py, contextBefore, candTexts, isLearnedArray)
             if (reorderedIndices != null && reorderedIndices.size == list.size) {
                 var orderChanged = false
                 for (i in reorderedIndices.indices) {
@@ -1399,75 +1492,29 @@ object LmCandidateHooks {
                 }
             }
 
-            // 保留足够多的候选供展开面板浏览，同时限制极端前缀造成的列表膨胀
-            if (list.size > 200) {
-                list.subList(200, list.size).clear()
+            // 候选池上限设为 60 个，首行 6 格，其余候选供展开选词框浏览
+            val maxCandidatePool = 60
+            if (list.size > maxCandidatePool) {
+                list.subList(maxCandidatePool, list.size).clear()
                 listModified = true
-            }
-            // 错键/换位纠正候选固定在首选之后，保证用户不用翻找
-            if (typoHintWords.isNotEmpty()) {
-                val best = typoHintWords.firstOrNull { w ->
-                    list.any { getCandidateText(it) == w }
-                }
-                if (best != null) {
-                    val idx = list.indexOfFirst { getCandidateText(it) == best }
-                    val firstIsTypo = list.isNotEmpty() &&
-                        getCandidateText(list[0]) in typoHintWords
-                    val target = if (firstIsTypo) 0 else 1
-                    if (idx > target) {
-                        list.add(target, list.removeAt(idx))
-                        listModified = true
-                    }
-                }
-            }
-            // 长编码时把词库本身的首选（通常是精确词）钉回第 1 位，
-            // 避免重排把超长短语顶到最前、整条候选栏只剩它一条
-            if (py != null && py.length >= 6 && preferredDictWord != null) {
-                val pinIdx = list.indexOfFirst { getCandidateText(it) == preferredDictWord }
-                if (pinIdx > 0) {
-                    val pinned = list.removeAt(pinIdx)
-                    list.add(0, pinned)
-                    listModified = true
-                }
             }
         }.onFailure { XLog.e("LmCandidateHooks 候选重排异常", it) }
         return listModified
     }
 
     /**
-     * 上屏词条命中 @上文 语境规则时，主动向候选栏推送联想候选
+     * 上屏词条命中用户显式配置的 @上文 语境规则时，主动向候选栏推送快捷短语（去除生硬统计联想）
      */
     private fun pushContextCandidatesAfterCommit(contextBefore: String, classLoader: ClassLoader) {
         if (!ConfigStore.lmEnabled || contextBefore.isBlank()) return
         // 仅对中文上屏做主动联想，避免在英文/密码/纯数字输入域污染候选栏
         if (!containsChinese(lastCommittedWord)) return
         if (isLmUnsupportedInputType(serviceRef?.get()?.currentInputEditorInfo)) return
-        val userCtxWords = XyCore.lmQueryUserCandidates("", contextBefore, 3)
+        val userCtxWords = XyCore.lmQueryUserCandidates("", contextBefore, 2)
             .filter { it.isNotBlank() && it != lastCommittedWord }
+        if (userCtxWords.isEmpty()) return
 
-        val mergedWords = ArrayList<String>()
-        fun addWord(w: String) {
-            if (w.isNotBlank() && w != lastCommittedWord && !mergedWords.contains(w)) {
-                mergedWords.add(w)
-            }
-        }
-        userCtxWords.forEach(::addWord)
-
-        // 已上屏词的多字联想：我 -> 我们/我的，今天 -> 今天下午/今天天气
-        val committed = lastCommittedWord
-        if (committed.isNotBlank()) {
-            XyCore.dictQueryWordPrefix(committed, 20).forEach(::addWord)
-            if (committed.length > 2) {
-                XyCore.dictQueryWordPrefix(committed.takeLast(2), 10).forEach(::addWord)
-            }
-        }
-
-        // 下一词预测只作为补充；单字上下文的 N-gram 结果噪声较大，至少两个汉字才启用
-        val chineseCount = contextBefore.count { it in '一'..'鿿' }
-        if (ConfigStore.lmNextWord && chineseCount >= 2) {
-            XyCore.lmPredictNext(contextBefore, 2).forEach(::addWord)
-        }
-        if (mergedWords.isEmpty()) return
+        val mergedWords = ArrayList<String>(userCtxWords)
 
         val postTask = Runnable {
             // 若用户在这几十毫秒内已经开始敲下一个字母，交由常规打字候选流处理
@@ -1504,7 +1551,7 @@ object LmCandidateHooks {
             }
         }
 
-        mainHandler.postDelayed(postTask, 35L)
+        mainHandler.postDelayed(postTask, 80L)
     }
 
     // 6. 监听上屏行为与误选退格事务回退 (支持多步连击退格)
@@ -1523,7 +1570,7 @@ object LmCandidateHooks {
         currentActivePinyin = ""
         lastProcessedPinyin = ""
         lastRawNativeList = emptyList()
-        lastRawNativeSpell = ""
+        lastRawNativeTime = 0L
         lastReemitSeq = -1L
 
         val updatedContext = truncateToSentence(ctx + word)
@@ -1564,20 +1611,16 @@ object LmCandidateHooks {
                     val committed = chain.getArg(0) as? CharSequence
                     val word = committed?.toString().orEmpty()
                     val py = currentActivePinyin.ifBlank {
-                        latestSpellText.replace("'", "").ifBlank {
-                            spellViewModelRef?.get()?.let { vm ->
-                                runCatching {
-                                    val method = vm.javaClass.getMethod("getSpellText")
-                                    method.isAccessible = true
-                                    method.invoke(vm)?.toString()?.replace("'", "")?.replace(" ", "")?.lowercase()
-                                }.getOrNull()
-                            } ?: ""
+                        if (isSpellComposingActive) {
+                            latestSpellText.replace("'", "")
+                        } else {
+                            ""
                         }
                     }
 
                     val r = chain.proceed()
 
-                    if (word.isNotBlank() && (ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode)) {
+                    if (isChineseLanguageActive(classLoader) && word.isNotBlank() && (ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode)) {
                         recordCommitInternal(word, py, classLoader)
                     }
 
@@ -1589,12 +1632,8 @@ object LmCandidateHooks {
         Reflect.methodInHierarchy(icCls, "deleteSurroundingText", java.lang.Integer.TYPE, java.lang.Integer.TYPE)?.let { m ->
             XLog.safe("LmCandidateHooks.deleteSurroundingText") {
                 module.hook(m).intercept { chain ->
-                    if (managedRemainder.isNotEmpty()) {
-                        handleRemainderBackspace(classLoader)
-                        return@intercept true
-                    }
                     val beforeLen = chain.getArg(0) as? Int ?: 0
-                    if (beforeLen > 0 && ConfigStore.lmEnabled && ConfigStore.lmLearning) {
+                    if (isChineseLanguageActive(classLoader) && beforeLen > 0 && ConfigStore.lmEnabled && ConfigStore.lmLearning) {
                         checkAndRollbackCommit(beforeLen)
                     }
                     chain.proceed()
@@ -1605,12 +1644,8 @@ object LmCandidateHooks {
         Reflect.methodInHierarchy(icCls, "deleteSurroundingTextInCodePoints", java.lang.Integer.TYPE, java.lang.Integer.TYPE)?.let { m ->
             XLog.safe("LmCandidateHooks.deleteSurroundingTextInCodePoints") {
                 module.hook(m).intercept { chain ->
-                    if (managedRemainder.isNotEmpty()) {
-                        handleRemainderBackspace(classLoader)
-                        return@intercept true
-                    }
                     val beforeLen = chain.getArg(0) as? Int ?: 0
-                    if (beforeLen > 0 && ConfigStore.lmEnabled && ConfigStore.lmLearning) {
+                    if (isChineseLanguageActive(classLoader) && beforeLen > 0 && ConfigStore.lmEnabled && ConfigStore.lmLearning) {
                         checkAndRollbackCommit(beforeLen)
                     }
                     chain.proceed()
@@ -1667,6 +1702,7 @@ object LmCandidateHooks {
                 val builder = mConstructor.newInstance(0, text, false)
                 if (input.isNotBlank()) {
                     modernBuilderDMethod?.invoke(builder, input)
+                    modernBuilderNMethod?.invoke(builder, input)
                 }
                 cand = mBuildMethod.invoke(builder)
             } catch (t: Throwable) {
@@ -1756,240 +1792,73 @@ object LmCandidateHooks {
         return runCatching { suggestionField?.get(vm) }.getOrNull()
     }
 
-    // 判断候选消费了当前拼音的哪一段：你好 + nihaoma -> consumed=nihao, remainder=ma
-    // 候选字数与音节数一一对应，这里保持 O(1)，避免点击候选时查词库造成不跟手
-    private fun computePartial(word: String): PartialCommit? {
-        if (word.isEmpty()) return null
-        for (ch in word) {
-            if (ch.code !in 0x3400..0x9FFF) return null
-        }
-        val raw = latestSpellText.replace(" ", "").lowercase()
-        if (raw.isEmpty() || !raw.contains('\'')) return null
-        val syllables = raw.split('\'').filter { it.isNotBlank() }
-        if (syllables.size < 2) return null
-        val charCount = word.codePointCount(0, word.length)
-        if (charCount < 1 || charCount >= syllables.size) return null
-        return PartialCommit(
-            syllables.take(charCount).joinToString(""),
-            syllables.drop(charCount).joinToString("")
-        )
-    }
-
-    // 复用三星键盘自己的按键音/振动实现，保持和原生一致的强度与开关
-    private fun ensureFeedbackHandles(classLoader: ClassLoader) {
-        if (feedbackLoader === classLoader) return
-        feedbackLoader = classLoader
-        vibInstance = null
-        vibMethod = null
-        soundInstance = null
-        soundMethod = null
-        runCatching {
-            val koin = Reflect.findClassIfExists("yz0.a", classLoader) ?: return@runCatching
-            val getter = koin.getMethod("a", Class::class.java)
-            val vibCls = Reflect.findClassIfExists("el.g", classLoader)
-            if (vibCls != null) {
-                vibInstance = getter.invoke(null, vibCls)
-                vibMethod = vibCls.getMethod("d", java.lang.Integer.TYPE)
-            }
-            val sndCls = Reflect.findClassIfExists("el.d", classLoader)
-            if (sndCls != null) {
-                soundInstance = getter.invoke(null, sndCls)
-                soundMethod = sndCls.getMethod("p", java.lang.Integer.TYPE, java.lang.Integer.TYPE)
-            }
-        }
-    }
-
-    private fun playNativeCandidateFeedback(classLoader: ClassLoader) {
-        ensureFeedbackHandles(classLoader)
-        runCatching { vibMethod?.invoke(vibInstance, 1) }
-        runCatching { soundMethod?.invoke(soundInstance, 0, 0) }
-        if (vibMethod == null) {
-            runCatching {
-                serviceRef?.get()?.window?.window?.decorView?.performHapticFeedback(
-                    android.view.HapticFeedbackConstants.KEYBOARD_TAP
-                )
-            }
-        }
-    }
-
-    // 部分上屏后，把剩余拼音的候选重新推到候选栏，例如 你好 + ma -> 吗/妈/马
-    private fun setRemainderSpellText(remainder: String) {
-        val vm = spellViewModelRef?.get() ?: return
-        isInternalRemainderSet = true
-        try {
-            // 左上角拼音框由 SpellTextViewModel.setSpell(dn.d) 驱动，
-            // 只改 setSpellText 不会重绘，这里构造一个只含剩余拼音的 spellData
-            val spellCls = cachedClassLoader?.let { Reflect.findClassIfExists("dn.d", it) }
-            var updated = false
-            if (spellCls != null && remainder.isNotEmpty()) {
-                runCatching {
-                    val data = spellCls.getDeclaredConstructor().newInstance()
-                    spellCls.getField("a").set(data, remainder)
-                    spellCls.getField("b").setInt(data, 0)
-                    spellCls.getField("c").setInt(data, 0)
-                    for (name in listOf("d", "e", "f")) {
-                        runCatching { spellCls.getField(name).set(data, ArrayList<Any>()) }
-                    }
-                    vm.javaClass.declaredMethods.firstOrNull {
-                        it.name == "setSpell" && it.parameterTypes.size == 1 &&
-                            it.parameterTypes[0].isInstance(data)
-                    }?.apply { isAccessible = true }?.invoke(vm, data)
-                    updated = true
-                }
-            }
-            if (!updated) {
-                vm.javaClass.declaredMethods.firstOrNull {
-                    it.name == "setSpellText" && it.parameterTypes.size == 1
-                }?.apply { isAccessible = true }?.invoke(vm, remainder)
-            }
-            runCatching {
-                vm.javaClass.declaredMethods.firstOrNull {
-                    it.name == "setSpellTextVisible" && it.parameterTypes.size == 1
-                }?.apply { isAccessible = true }?.invoke(vm, remainder.isNotEmpty())
-            }
-            runCatching {
-                vm.javaClass.declaredMethods.firstOrNull {
-                    it.name == "setSpellLayoutVisibility" && it.parameterTypes.size == 1
-                }?.apply { isAccessible = true }?.invoke(vm, remainder.isNotEmpty())
-            }
-        } finally {
-            isInternalRemainderSet = false
-        }
-    }
-
-    private fun showRemainder(remainder: String, classLoader: ClassLoader) {
-        managedRemainder = remainder
-        if (remainder.isEmpty()) {
-            currentActivePinyin = ""
-            latestSpellText = ""
-            lastProcessedPinyin = ""
-            setRemainderSpellText("")
-            clearEmittedCandidates(deep = false)
-            return
-        }
-        currentActivePinyin = remainder
-        latestSpellText = remainder
-        lastProcessedPinyin = remainder
-        lastContextPushTimestamp = System.currentTimeMillis()
-        setRemainderSpellText(remainder)
-
-        val words = XyCore.dictQueryPinyin(remainder, 20).filter { it.isNotBlank() }
-        val candObjects = ArrayList<Any>(words.size)
-        for (w in words) {
-            createCandidate(classLoader, w, remainder)?.let { candObjects.add(it) }
-        }
-        if (candObjects.isEmpty()) return
-        mainHandler.postDelayed({
-            val emitter = emitterInstanceRef?.get() ?: return@postDelayed
-            val prevPush = beginInternalPush()
-            try {
-                val mL = emitterMethodL
-                val mA = emitterMethodA
-                val slot = lastRawSlot
-                if (canInvokeEmitter(emitter, mL)) {
-                    mL?.invoke(emitter, candObjects, slot)
-                } else if (canInvokeEmitter(emitter, mA)) {
-                    mA?.invoke(emitter, candObjects)
-                } else {
-                    return@postDelayed
-                }
-                rememberEmittedList(candObjects)
-                refreshCandidateBar()
-                XLog.i("LmCandidateHooks: 部分上屏，剩余拼音 '$remainder' -> $words")
-            } finally {
-                isInternalContextPush = prevPush
-            }
-        }, 35L)
-    }
-
-    private fun startRemainderComposition(remainder: String, classLoader: ClassLoader) {
-        showRemainder(remainder, classLoader)
-    }
-
-    private fun handleRemainderBackspace(classLoader: ClassLoader): Boolean {
-        val current = managedRemainder
-        if (current.isEmpty()) return false
-        showRemainder(current.dropLast(1), classLoader)
-        return true
-    }
-
     private fun handleSyntheticCommit(cand: Any, classLoader: ClassLoader): Boolean {
         val info = synchronized(syntheticCandidates) {
             syntheticCandidates[cand]
         }
 
-        val clickedText = info?.text ?: getCandidateText(cand)
-        val nativeTexts = lastRawNativeList.orEmpty().mapNotNull { getCandidateText(it) }
-        val partial = clickedText?.takeIf { it.isNotBlank() }?.let { computePartial(it) }
-
-        val isNative = clickedText != null && nativeTexts.contains(clickedText)
-        var synthetic: SyntheticInfo? = info
-        if (info == null && partial == null) {
-            // 原生完整候选直接交回三星，避免每次点击扫描合成候选表造成不跟手
-            if (isNative) return false
-            // 非原生文本：兜底识别被工具栏重新包装的合成候选
-            synthetic = synchronized(syntheticCandidates) {
+        // 当候选对象在工具栏刷新后被重新包装时，必须同时校验候选文本一致，防止误拦截普通原生候选词
+        val clickedText = if (info == null) getCandidateText(cand) else null
+        val fallbackInfo = if (info == null && !clickedText.isNullOrEmpty()) {
+            synchronized(syntheticCandidates) {
                 syntheticCandidates.values.firstOrNull { v ->
                     !v.committed && v.text == clickedText &&
-                        (v.input == currentActivePinyin || v.input == lastSyntheticCode || v.input.isEmpty())
+                            (v.input == currentActivePinyin || v.input == lastSyntheticCode || v.input.isEmpty())
                 }
             }
-            if (synthetic == null) return false
+        } else null
+
+        val resolvedInfo = info ?: fallbackInfo ?: return false
+        if (resolvedInfo.committed) {
+            return true
         }
 
-        val word = synthetic?.text ?: clickedText ?: return false
-        if (synthetic != null) {
-            if (synthetic.committed) return true
-            synthetic.committed = true
+        // 多音节打字状态下，单字点击绝不走合成整句提交，交由原生分步选词处理
+        val activeSyls = estimateSyllableCount(latestSpellText, currentActivePinyin, ConfigStore.lmQuanpinMode)
+        if (isSpellComposingActive && activeSyls >= 2 && countChineseCharacters(resolvedInfo.text) == 1) {
+            return false
         }
-        val effectivePartial = partial ?: computePartial(word)
-        // 部分上屏时按候选实际消费的拼音学习（你好 -> nihao），否则沿用注入时的编码
-        val py = effectivePartial?.consumed ?: synthetic?.input ?: ""
-        val remainder = effectivePartial?.remainder
-        if (py.isNotBlank()) currentActivePinyin = py
-        if (remainder == null && managedRemainder.isNotEmpty()) managedRemainder = ""
+
+        resolvedInfo.committed = true
         val clickTs = System.currentTimeMillis()
-        XLog.i("LmCandidateHooks: 候选提交 word='$word', consumed='${effectivePartial?.consumed}', remainder='$remainder'")
+
+        val word = resolvedInfo.text
+        // 空 input 的候选是 @上文/下一词联想，只按语境学习；不要在点击时借用当前输入的编码
+        val py = resolvedInfo.input
+        XLog.i("LmCandidateHooks: 拦截自注入候选词提交: word='$word', code='$py'")
 
         val service = serviceRef?.get()
         val ic = service?.currentInputConnection
         if (ic == null) {
-            if (synthetic != null) synthetic.committed = false
-            XLog.e("LmCandidateHooks: currentInputConnection 为空，无法提交候选词")
+            resolvedInfo.committed = false
+            XLog.e("LmCandidateHooks: currentInputConnection 为空，无法提交合成候选词")
             return false
         }
-
-        playNativeCandidateFeedback(classLoader)
 
         runCatching { lastEmittedListRef?.get()?.remove(cand) }
         val committed = runCatching { ic.commitText(word, 1) }
         if (committed.isFailure) {
-            if (synthetic != null) synthetic.committed = false
-            XLog.e("LmCandidateHooks: 提交候选词失败", committed.exceptionOrNull())
+            resolvedInfo.committed = false
+            XLog.e("LmCandidateHooks: 提交合成候选词失败", committed.exceptionOrNull())
             return false
         }
         runCatching { ic.finishComposingText() }
 
+        // 同步阶段不推空列表，避免压掉紧随其后的 @上文 联想候选；
+        // 由 150ms 兜底回调在确认无联想推送后再彻底清空候选栏
         recordCommitInternal(word, py, classLoader)
         clearNativeEngineState()
         clearSpellTextAndRefreshCandidates()
 
-        if (remainder != null) {
-            // 部分上屏：剩余拼音继续出候选，例如 nihaoma 选你好后继续选 ma -> 吗
-            startRemainderComposition(remainder, classLoader)
-        } else {
-            // 同步阶段不推空列表，避免压掉紧随其后的 @上文 联想候选；
-            // 由 150ms 兜底回调在确认无联想推送后再彻底清空候选栏
-            mainHandler.postDelayed({
-                if (System.currentTimeMillis() - clickTs < 400L &&
-                    !isSpellComposingActive &&
-                    currentActivePinyin.isBlank() &&
-                    lastContextPushTimestamp < clickTs
-                ) {
-                    clearEmittedCandidates(deep = true)
-                }
-            }, 150L)
-        }
+        mainHandler.postDelayed({
+            if (System.currentTimeMillis() - clickTs < 400L &&
+                !isSpellComposingActive &&
+                currentActivePinyin.isBlank() &&
+                lastContextPushTimestamp < clickTs
+            ) {
+                clearEmittedCandidates(deep = true)
+            }
+        }, 150L)
 
         return true
     }
@@ -2033,19 +1902,19 @@ object LmCandidateHooks {
     }
 
     private fun clearSpellTextAndRefreshCandidates() {
-        spellViewModelRef?.get()?.let { vm ->
+        spellTextViewModelRef?.get()?.let { vm ->
             runCatching {
                 val setTextMethod = vm.javaClass.declaredMethods.firstOrNull {
                     it.name == "setSpellText" && it.parameterTypes.size == 1
-                }?.apply { isAccessible = true }
+                }?.apply { setAccessible(true) }
                 setTextMethod?.invoke(vm, "")
             }
             runCatching {
-                val m = vm.javaClass.getDeclaredMethod("setSpellTextVisible", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                val m = vm.javaClass.getDeclaredMethod("setSpellTextVisible", java.lang.Boolean.TYPE).apply { setAccessible(true) }
                 m.invoke(vm, false)
             }
             runCatching {
-                val m = vm.javaClass.getDeclaredMethod("setSpellLayoutVisibility", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                val m = vm.javaClass.getDeclaredMethod("setSpellLayoutVisibility", java.lang.Boolean.TYPE).apply { setAccessible(true) }
                 m.invoke(vm, false)
             }
         }
@@ -2055,6 +1924,7 @@ object LmCandidateHooks {
 
     private fun refreshCandidateBar() {
         val service = serviceRef?.get()
+        var refreshed = false
 
         if (service != null) {
             runCatching {
@@ -2063,25 +1933,28 @@ object LmCandidateHooks {
                 if (updater != null) {
                     val zMethod = updater.javaClass.getMethod("z", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
                     zMethod.invoke(updater, true)
+                    refreshed = true
                     XLog.i("LmCandidateHooks: 已通知 CandidateUpdater.z(true) 刷新候选栏")
                 }
             }.onFailure { XLog.e("调用 getCandidateUpdater 刷新失败: ${it.message}") }
         }
 
-        val cl = cachedClassLoader
-        if (cl != null) {
-            runCatching {
-                val yzCls = Reflect.findClassIfExists("yz0.a", cl)
-                val cnCls = Reflect.findClassIfExists("cn.c", cl)
-                if (yzCls != null && cnCls != null) {
-                    val getMethod = yzCls.getMethod("a", Class::class.java)
-                    val updater = getMethod.invoke(null, cnCls)
-                    if (updater != null) {
-                        val zMethod = updater.javaClass.getMethod("z", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                        zMethod.invoke(updater, true)
+        if (!refreshed) {
+            val cl = cachedClassLoader
+            if (cl != null) {
+                runCatching {
+                    val yzCls = Reflect.findClassIfExists("yz0.a", cl)
+                    val cnCls = Reflect.findClassIfExists("cn.c", cl)
+                    if (yzCls != null && cnCls != null) {
+                        val getMethod = yzCls.getMethod("a", Class::class.java)
+                        val updater = getMethod.invoke(null, cnCls)
+                        if (updater != null) {
+                            val zMethod = updater.javaClass.getMethod("z", Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                            zMethod.invoke(updater, true)
+                        }
                     }
-                }
-            }.onFailure { XLog.e("通过 Koin 刷新 CandidateUpdater 失败: ${it.message}") }
+                }.onFailure { XLog.e("通过 Koin 刷新 CandidateUpdater 失败: ${it.message}") }
+            }
         }
     }
 
@@ -2124,17 +1997,17 @@ object LmCandidateHooks {
     // setSpell 晚于候选管线到达时，用最新拼写重算候选
     private fun reemitWithLatestSpell(classLoader: ClassLoader) {
         if (!ConfigStore.lmEnabled && !ConfigStore.lmQuanpinMode) return
+        if (!isChineseLanguageActive(classLoader)) return
         val emitter = emitterInstanceRef?.get() ?: return
         val mL = emitterMethodL
         val mA = emitterMethodA
         if (mL == null && mA == null) return
         val rawList = lastRawNativeList ?: return
-        // 快照对应的是旧拼写时只用空基底，避免把上一次的候选带进来
-        val baseList = if (lastRawNativeSpell.isEmpty() || lastRawNativeSpell == latestSpellText) {
-            rawList
-        } else {
-            emptyList()
-        }
+        // 只要原生快照含有中文且处于打字有效时间内 (1500ms)，即可复用作为基底候选，避免时序差清空候选池
+        val now = System.currentTimeMillis()
+        val isValidNative = (now - lastRawNativeTime < 1500L) &&
+            rawList.any { containsChinese(getCandidateText(it).orEmpty()) }
+        val baseList = if (isValidNative) rawList else emptyList()
         val workingList = ArrayList<Any>(baseList)
         val slot = lastRawSlot
         val changed = processCandidates(workingList, classLoader)

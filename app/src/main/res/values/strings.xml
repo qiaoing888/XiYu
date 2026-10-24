@@ -146,62 +146,6 @@
     <string name="xy_sandbox_input_hint">输入测试内容</string>
     <string name="xy_sandbox_candidate_prefix">候选推荐：</string>
 
-    <!-- 关于与开源许可 -->
-    <string name="xy_section_about">关于</string>
-    <string name="xy_section_about_en">ABOUT</string>
-    <string name="xy_about_repo_title">项目主页</string>
-    <string name="xy_about_repo_desc">github.com/qiaoing888/XiYu</string>
-    <string name="xy_about_repo_action">访问</string>
-    <string name="xy_about_license_title">开源许可与致谢</string>
-    <string name="xy_about_license_desc">GPL-3.0 · 第三方组件与数据来源</string>
-    <string name="xy_about_license_action">查看</string>
-    <string name="xy_about_update_title">检查更新</string>
-    <string name="xy_about_update_action">检查</string>
-    <string name="xy_about_update_checking">检查中…</string>
-    <string name="xy_about_update_subtitle_default">点击检查版本更新</string>
-    <string name="xy_about_update_current">当前版本 %1$s · 点击检查更新</string>
-    <string name="xy_about_update_new">当前 %1$s · 最新 v%2$s</string>
-    <string name="xy_about_update_badge_new">新版本 v%1$s</string>
-    <string name="xy_about_update_is_latest">已是最新版本 v%1$s</string>
-    <string name="xy_about_update_failed">检查失败，请稍后重试</string>
-    <string name="xy_about_app_title">关于汐语</string>
-    <string name="xy_about_app_desc">版本 %1$s · 本地运行 · 开源共建</string>
-    <string name="xy_about_app_action">GPL-3.0</string>
-
-    <string name="xy_about_dialog_title">关于汐语</string>
-    <string name="xy_about_dialog_msg">汐语（XiYu）是面向三星 One UI 键盘的本地增强模块。语音、验证码、计算与词库重排全部在本机完成，不收集、不上传任何输入内容；仅在打开设置页时访问 GitHub 检查版本更新。</string>
-    <string name="xy_about_dialog_repo">github.com/qiaoing888/XiYu ↗</string>
-    <string name="xy_about_dialog_license">GPL-3.0 · Copyright (C) 2026 XiYu Contributors</string>
-    <string name="xy_about_dialog_open_repo">项目主页</string>
-    <string name="xy_about_dialog_close">关闭</string>
-    <string name="xy_about_link_failed">未找到可打开链接的应用</string>
-
-    <string name="xy_license_dialog_title">开源许可与致谢</string>
-    <string name="xy_license_dialog_intro">汐语基于 GNU GPL-3.0 发布。以下组件与数据源共同构成本应用，衷心感谢每一位开源作者。</string>
-    <string name="xy_license_group_data">数据来源</string>
-    <string name="xy_license_group_code">代码组件</string>
-    <string name="xy_license_group_project">本项目</string>
-    <string name="xy_license_data_ice">基础与扩展词库、简繁与多音字数据</string>
-    <string name="xy_license_data_wanxiang">补充词库与 .gram 语言模型</string>
-    <string name="xy_license_data_lm">N-gram 语言模型训练数据</string>
-    <string name="xy_license_code_darts">双数组 Trie 实现 · Susumu Yata</string>
-    <string name="xy_license_code_xposed">Xposed 模块接口</string>
-    <string name="xy_license_code_androidx">Android UI 基础库</string>
-    <string name="xy_license_code_kotlin">Kotlin 运行时与协程</string>
-    <string name="xy_license_project_desc">三星键盘增强 · 本项目</string>
-    <string name="xy_license_full_text">完整许可文本随源码发布，见仓库中的 LICENSE 与 THIRD_PARTY_NOTICES.md。</string>
-    <string name="xy_license_gpl_link">查看 GPL-3.0 全文 ↗</string>
-    <string name="xy_license_close">关闭</string>
-
-    <string name="xy_update_dialog_title">发现新版本 v%1$s</string>
-    <string name="xy_update_dialog_current">当前版本 v%1$s</string>
-    <string name="xy_update_dialog_latest">最新版本 v%1$s</string>
-    <string name="xy_update_dialog_notes_title">更新内容</string>
-    <string name="xy_update_dialog_empty_notes">该版本未填写更新说明，点击「前往下载」查看详情。</string>
-    <string name="xy_update_dialog_notes_hint">完整说明与安装包见 GitHub Release 页面</string>
-    <string name="xy_update_dialog_download">前往下载</string>
-    <string name="xy_update_dialog_later">稍后</string>
-
     <string name="xy_footer">汐语 · 专为 One UI 三星键盘定制增强</string>
 
     <!-- 作用域声明 -->

@@ -1012,6 +1012,10 @@ static void lookup_dict_matches_for_span(
         float prior = (cand.weight > 0)
             ? std::log10(static_cast<float>(cand.weight)) * 1.5f
             : 0.0f;
+        // 低权重多字生僻词惩罚：防止低频双字词反超常用单字组合
+        if (c_len >= 2 && cand.weight < 80) {
+            prior -= 5.0f;
+        }
         size_t effective_syls = (cost_syls > 0) ? cost_syls : c_len;
         matches.push_back({cand.word, end_pos, effective_syls, first_syl_len, prior, fuzzy_penalty});
     }
@@ -1081,29 +1085,6 @@ static void save_user_memory_locked() {
 }
 
 } // namespace
-
-bool is_valid_pinyin_sequence(const char *pinyin) {
-    std::string s = clean_pinyin_string(pinyin);
-    if (s.empty()) return false;
-    ensure_pinyin_sets_initialized();
-    size_t i = 0;
-    while (i < s.size()) {
-        size_t max_len = std::min<size_t>(6, s.size() - i);
-        size_t take = 0;
-        for (size_t len = max_len; len >= 1; --len) {
-            if (g_intact_pinyin_set.find(s.substr(i, len)) != g_intact_pinyin_set.end()) {
-                take = len;
-                break;
-            }
-        }
-        if (take == 0) {
-            // 只允许最后一段是不完整音节前缀（用户还没打完）
-            return g_prefix_pinyin_set.find(s.substr(i)) != g_prefix_pinyin_set.end();
-        }
-        i += take;
-    }
-    return true;
-}
 
 void init_lm(const char *storage_dir, const char *custom_model_path, const char *custom_dict_path) {
     {
@@ -1380,8 +1361,8 @@ static void collect_prefix_offsets(const DictLayer &layer, const std::string &pr
     if (key_pos != prefix.size()) return;
     std::string cur;
     int visited = 0;
-    constexpr int MAX_PREFIX_NODES = 16384;
-    constexpr int MAX_PREFIX_KEYS = 4096;
+    constexpr int MAX_PREFIX_NODES = 4096;
+    constexpr int MAX_PREFIX_KEYS = 2000;
     dfs_collect_prefix_offsets(layer, node_pos, cur, visited, MAX_PREFIX_NODES,
                                offsets, MAX_PREFIX_KEYS);
 }
@@ -1394,7 +1375,7 @@ static void append_prefix_candidates(const std::string &prefix, int max_results,
 
     std::vector<DictCand> hits;
     constexpr int PER_KEY_TAKE = 4;
-    constexpr size_t MAX_HITS = 8192;
+    constexpr size_t MAX_HITS = 4096;
     for (const DictLayer *layer : {&g_dict_core, &g_dict_ext}) {
         if (!layer->loaded) continue;
         std::vector<int> offsets;
@@ -1415,6 +1396,269 @@ static void append_prefix_candidates(const std::string &prefix, int max_results,
         if (std::find(results.begin(), results.end(), hit.word) != results.end()) continue;
         results.push_back(hit.word);
     }
+}
+
+static std::vector<std::string> split_pinyin_into_syllables(const char *pinyin) {
+    std::vector<std::string> syllables;
+    if (!pinyin || !*pinyin) return syllables;
+    ensure_pinyin_sets_initialized();
+
+    std::string norm;
+    norm.reserve(std::strlen(pinyin));
+    for (const char *p = pinyin; *p; ++p) {
+        unsigned char c = static_cast<unsigned char>(*p);
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+            norm.push_back(static_cast<char>(std::tolower(c)));
+        } else if (c == '\'' || c == ' ' || c == '-') {
+            if (!norm.empty() && norm.back() != '\'') {
+                norm.push_back('\'');
+            }
+        }
+    }
+    while (!norm.empty() && norm.back() == '\'') {
+        norm.pop_back();
+    }
+    if (norm.empty() || norm.size() > 128) return syllables;
+
+    auto split_incomplete_tail = [&](const std::string &rem) {
+        size_t i = 0;
+        while (i < rem.size()) {
+            if (i + 1 < rem.size()) {
+                std::string two = rem.substr(i, 2);
+                if (two == "zh" || two == "ch" || two == "sh") {
+                    syllables.push_back(two);
+                    i += 2;
+                    continue;
+                }
+            }
+            syllables.push_back(rem.substr(i, 1));
+            i += 1;
+        }
+    };
+
+    size_t seg_start = 0;
+    while (seg_start < norm.size()) {
+        size_t apo = norm.find('\'', seg_start);
+        std::string part = (apo == std::string::npos)
+            ? norm.substr(seg_start)
+            : norm.substr(seg_start, apo - seg_start);
+        seg_start = (apo == std::string::npos) ? norm.size() : (apo + 1);
+        if (part.empty()) continue;
+
+        if (g_intact_pinyin_set.find(part) != g_intact_pinyin_set.end()) {
+            syllables.push_back(part);
+            continue;
+        }
+
+        size_t best_end = 0;
+        SyllableGraph graph = build_syllable_graph(part, best_end);
+        if (best_end > 0) {
+            size_t M = best_end;
+            std::vector<size_t> min_hops(M + 1, M + 1);
+            std::vector<size_t> next_hop(M + 1, M);
+            std::vector<std::string> hop_syl(M + 1);
+            min_hops[M] = 0;
+            for (size_t pos = M; pos-- > 0;) {
+                for (const auto &edge : graph.edges[pos]) {
+                    if (edge.is_delimiter || edge.end_pos > M) continue;
+                    if (min_hops[edge.end_pos] + 1 < min_hops[pos]) {
+                        min_hops[pos] = min_hops[edge.end_pos] + 1;
+                        next_hop[pos] = edge.end_pos;
+                        hop_syl[pos] = edge.syllable;
+                    }
+                }
+            }
+            size_t cur = 0;
+            while (cur < M && min_hops[cur] <= M && !hop_syl[cur].empty()) {
+                syllables.push_back(hop_syl[cur]);
+                cur = next_hop[cur];
+            }
+        }
+        if (best_end < part.size()) {
+            split_incomplete_tail(part.substr(best_end));
+        }
+    }
+    return syllables;
+}
+
+static void collect_span_candidates(
+    const std::vector<std::string> &syllables,
+    size_t start_idx,
+    size_t count,
+    int max_take,
+    std::vector<DictCand> &out
+) {
+    if (count == 0 || start_idx + count > syllables.size()) return;
+    std::string key;
+    for (size_t i = 0; i < count; ++i) {
+        key += syllables[start_idx + i];
+    }
+
+    std::vector<DictCand> raw_hits;
+    merge_layer_exact(key, max_take * 2, raw_hits);
+    std::unordered_set<std::string> seen;
+    for (const auto &h : raw_hits) {
+        if (h.word.empty() || utf8_char_length(h.word.c_str()) != count) continue;
+        if (seen.insert(h.word).second) {
+            out.push_back(h);
+            if (static_cast<int>(out.size()) >= max_take) return;
+        }
+    }
+
+    const std::string &last_syl = syllables[start_idx + count - 1];
+    bool last_is_intact = (g_intact_pinyin_set.find(last_syl) != g_intact_pinyin_set.end());
+    if (count == 1 && (!last_is_intact || out.empty())) {
+        std::vector<DictCand> sub_hits;
+        for (size_t i = 0; i < STANDARD_PINYIN_SYLLABLE_COUNT; ++i) {
+            const char *syl = STANDARD_PINYIN_SYLLABLES[i];
+            if (std::strncmp(syl, last_syl.c_str(), last_syl.size()) == 0) {
+                merge_layer_exact(syl, 4, sub_hits);
+            }
+        }
+        std::stable_sort(sub_hits.begin(), sub_hits.end(), [](const DictCand &a, const DictCand &b) {
+            return a.weight > b.weight;
+        });
+        for (const auto &h : sub_hits) {
+            if (h.word.empty() || utf8_char_length(h.word.c_str()) != 1) continue;
+            if (seen.insert(h.word).second) {
+                out.push_back(h);
+                if (static_cast<int>(out.size()) >= max_take) break;
+            }
+        }
+    } else if (count == 2 && (!last_is_intact || out.empty())) {
+        const std::string &first_syl = syllables[start_idx];
+        if (g_intact_pinyin_set.find(first_syl) != g_intact_pinyin_set.end()) {
+            std::vector<DictCand> sub_hits;
+            for (size_t i = 0; i < STANDARD_PINYIN_SYLLABLE_COUNT; ++i) {
+                const char *syl = STANDARD_PINYIN_SYLLABLES[i];
+                if (std::strncmp(syl, last_syl.c_str(), last_syl.size()) == 0) {
+                    merge_layer_exact(first_syl + syl, 4, sub_hits);
+                }
+            }
+            std::stable_sort(sub_hits.begin(), sub_hits.end(), [](const DictCand &a, const DictCand &b) {
+                return a.weight > b.weight;
+            });
+            for (const auto &h : sub_hits) {
+                if (h.word.empty() || utf8_char_length(h.word.c_str()) != 2) continue;
+                if (seen.insert(h.word).second) {
+                    out.push_back(h);
+                    if (static_cast<int>(out.size()) >= max_take) break;
+                }
+            }
+        }
+    }
+}
+
+// 按音节前缀跨度（k -> k-1 -> ... -> 1）从词典召回真实词条与单字，绝不生造同音假词
+static void append_real_prefix_span_candidates(
+    const std::vector<std::string> &syllables,
+    int max_results,
+    const std::unordered_set<std::string> &suppressed,
+    std::vector<std::string> &results
+) {
+    size_t k = syllables.size();
+    if (k == 0 || k > 24 || static_cast<int>(results.size()) >= max_results) return;
+
+    for (size_t m = k; m >= 1; --m) {
+        std::vector<DictCand> span_hits;
+        collect_span_candidates(syllables, 0, m, max_results, span_hits);
+        for (const auto &h : span_hits) {
+            if (static_cast<int>(results.size()) >= max_results) return;
+            if (h.word.empty()) continue;
+            if (suppressed.find(h.word) != suppressed.end()) continue;
+            if (std::find(results.begin(), results.end(), h.word) != results.end()) continue;
+            results.push_back(h.word);
+        }
+    }
+}
+
+// 校验候选词/自学习词条与当前全拼编码是否匹配，防止上屏残影导致类似 "ni" -> "写" 的错配词污染首屏
+static bool is_learned_word_valid_for_pinyin(const char *raw_pinyin, const std::string &word) {
+    if (!g_quanpin_mode.load(std::memory_order_relaxed) || !g_dict_core.loaded) return true;
+    if (!raw_pinyin || !*raw_pinyin || word.empty()) return true;
+    if (!text_contains_chinese(word)) return true;
+
+    std::vector<std::string> chars;
+    const char *p = word.data();
+    const char *end = p + word.size();
+    while (p < end) {
+        const char *c_start = p;
+        uint32_t cp = next_utf8_codepoint(p, end);
+        bool is_han = (cp >= 0x4E00 && cp <= 0x9FFF) ||
+                      (cp >= 0x3400 && cp <= 0x4DBF) ||
+                      (cp >= 0x20000 && cp <= 0x2A6DF);
+        if (!is_han) return true;
+        chars.emplace_back(c_start, static_cast<size_t>(p - c_start));
+    }
+    if (chars.empty()) return true;
+
+    std::vector<std::string> syllables = split_pinyin_into_syllables(raw_pinyin);
+    if (syllables.empty()) return true;
+    size_t check_len = std::min(chars.size(), syllables.size());
+    if (check_len == 0) return true;
+
+    std::string span_py;
+    std::string prefix_word;
+    for (size_t i = 0; i < check_len; ++i) {
+        span_py += syllables[i];
+        prefix_word += chars[i];
+    }
+    if (!span_py.empty()) {
+        std::vector<DictCand> whole_hits;
+        collect_exact_from_layer(g_dict_core, span_py, 128, whole_hits);
+        for (const auto &h : whole_hits) {
+            if (h.word == prefix_word) return true;
+        }
+    }
+
+    for (size_t i = 0; i < check_len; ++i) {
+        const std::string &ch = chars[i];
+        int char_wt = g_dict_core.word_trie.exactMatchSearch<int>(ch.c_str(), ch.size());
+        if (char_wt <= 0) continue;
+
+        const std::string &syl = syllables[i];
+        std::vector<DictCand> char_hits;
+        collect_exact_from_layer(g_dict_core, syl, 255, char_hits);
+        if (g_intact_pinyin_set.find(syl) == g_intact_pinyin_set.end()) {
+            for (size_t s_idx = 0; s_idx < STANDARD_PINYIN_SYLLABLE_COUNT; ++s_idx) {
+                const char *std_syl = STANDARD_PINYIN_SYLLABLES[s_idx];
+                if (std::strncmp(std_syl, syl.c_str(), syl.size()) == 0) {
+                    collect_exact_from_layer(g_dict_core, std_syl, 64, char_hits);
+                }
+            }
+        }
+        bool matched = false;
+        for (const auto &h : char_hits) {
+            if (h.word == ch) {
+                matched = true;
+                break;
+            }
+        }
+        if (!matched && i + 1 < check_len) {
+            std::vector<DictCand> bi_hits;
+            collect_exact_from_layer(g_dict_core, syllables[i] + syllables[i + 1], 64, bi_hits);
+            std::string bi_word = chars[i] + chars[i + 1];
+            for (const auto &h : bi_hits) {
+                if (h.word == bi_word) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        if (!matched && i > 0) {
+            std::vector<DictCand> bi_hits;
+            collect_exact_from_layer(g_dict_core, syllables[i - 1] + syllables[i], 64, bi_hits);
+            std::string bi_word = chars[i - 1] + chars[i];
+            for (const auto &h : bi_hits) {
+                if (h.word == bi_word) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        if (!matched) return false;
+    }
+    return true;
 }
 
 std::vector<std::string> query_dict_pinyin(const char *pinyin, int max_results) {
@@ -1438,12 +1682,18 @@ std::vector<std::string> query_dict_pinyin(const char *pinyin, int max_results) 
     }
     if (!dict_any_loaded()) return results;
 
+    std::vector<std::string> syllables = split_pinyin_into_syllables(pinyin);
+    size_t k = syllables.size();
+    bool quanpin = g_quanpin_mode.load(std::memory_order_relaxed);
+
     auto fetch_by_key = [&](const std::string &key) {
         std::vector<DictCand> hits;
-        merge_layer_exact(key, max_results, hits);
+        merge_layer_exact(key, max_results * 2, hits);
         for (const auto &hit : hits) {
             if (static_cast<int>(results.size()) >= max_results) break;
             if (hit.word.empty()) continue;
+            // 单音节全拼（如 "wo"）剔除首字母简拼重码的 2 字词（如 "玩偶"、"我哦"）
+            if (quanpin && k == 1 && utf8_char_length(hit.word.c_str()) > 1) continue;
             if (suppressed_snapshot.find(hit.word) != suppressed_snapshot.end()) continue;
             if (std::find(results.begin(), results.end(), hit.word) != results.end()) continue;
             results.push_back(hit.word);
@@ -1452,91 +1702,19 @@ std::vector<std::string> query_dict_pinyin(const char *pinyin, int max_results) 
 
     fetch_by_key(py_clean);
 
-    // 精确候选不够时，用前缀检索补足（仅输入长度 >=2）
-    if (static_cast<int>(results.size()) < max_results && py_clean.size() >= 2) {
+    // 整键精确匹配不足时，按前缀音节跨度（k -> k-1 -> ... -> 1）召回真实词典词条与单字
+    if (static_cast<int>(results.size()) < max_results && k > 0) {
+        append_real_prefix_span_candidates(syllables, max_results, suppressed_snapshot, results);
+    }
+
+    // 仅当末尾音节未完整或结果为空时才用前缀检索兜底（避免完整音节误召回更长拼音的词）
+    bool last_is_intact = !syllables.empty() &&
+        (g_intact_pinyin_set.find(syllables.back()) != g_intact_pinyin_set.end());
+    if (static_cast<int>(results.size()) < max_results && py_clean.size() >= 2 &&
+        (!last_is_intact || results.empty())) {
         append_prefix_candidates(py_clean, max_results, suppressed_snapshot, results);
     }
 
-    return results;
-}
-
-// 已上屏词 -> 多字联想词。word_trie 的 key 就是词条本身，桩节点之后收集后缀。
-static void dfs_collect_word_associations(
-    const DictLayer &layer,
-    size_t node_pos,
-    const std::string &prefix,
-    std::string &suffix,
-    int &visited,
-    int max_nodes,
-    std::vector<DictCand> &hits
-) {
-    if (visited >= max_nodes) return;
-    ++visited;
-
-    const auto *units = static_cast<const Darts::Details::DoubleArrayUnit *>(layer.word_trie.array());
-    auto unit = units[node_pos];
-    if (unit.has_leaf()) {
-        size_t leaf_pos = node_pos ^ unit.offset();
-        if (leaf_pos < layer.word_trie.size()) {
-            int val = units[leaf_pos].value();
-            if (val > 0 && !suffix.empty()) {
-                hits.push_back({prefix + suffix, static_cast<uint32_t>(val)});
-            }
-        }
-    }
-    if (suffix.size() >= 24) return;  // 最多再跟 8 个汉字
-    for (int b = 0; b < 256; ++b) {
-        size_t next_pos = node_pos ^ unit.offset() ^ static_cast<unsigned int>(b);
-        if (next_pos < layer.word_trie.size() &&
-            units[next_pos].label() == static_cast<unsigned int>(b)) {
-            suffix.push_back(static_cast<char>(b));
-            dfs_collect_word_associations(layer, next_pos, prefix, suffix, visited, max_nodes, hits);
-            suffix.pop_back();
-            if (visited >= max_nodes) break;
-        }
-    }
-}
-
-std::vector<std::string> query_dict_word_prefix(const char *prefix, int max_results) {
-    std::vector<std::string> results;
-    if (!prefix || !*prefix || max_results <= 0) return results;
-    std::string p(prefix);
-
-    std::unordered_set<std::string> suppressed_snapshot;
-    {
-        std::lock_guard<std::mutex> mem_lock(g_user_mem_mutex);
-        for (const auto &kv : g_suppressed_words) {
-            suppressed_snapshot.insert(kv.first);
-        }
-    }
-
-    std::unique_lock<std::mutex> lock(g_dict_mutex, std::defer_lock);
-    if (!g_dict_is_embedded.load(std::memory_order_relaxed)) {
-        lock.lock();
-    }
-    if (!dict_any_loaded()) return results;
-
-    std::vector<DictCand> hits;
-    for (const DictLayer *layer : {&g_dict_core, &g_dict_ext}) {
-        if (!layer->loaded) continue;
-        size_t node_pos = 0;
-        size_t key_pos = 0;
-        layer->word_trie.traverse(p.c_str(), node_pos, key_pos, p.size());
-        if (key_pos != p.size()) continue;
-        std::string suffix;
-        int visited = 0;
-        dfs_collect_word_associations(*layer, node_pos, p, suffix, visited, 8192, hits);
-    }
-    std::stable_sort(hits.begin(), hits.end(), [](const DictCand &a, const DictCand &b) {
-        return a.weight > b.weight;
-    });
-    for (const auto &hit : hits) {
-        if (static_cast<int>(results.size()) >= max_results) break;
-        if (hit.word.empty() || hit.word == p) continue;
-        if (suppressed_snapshot.find(hit.word) != suppressed_snapshot.end()) continue;
-        if (std::find(results.begin(), results.end(), hit.word) != results.end()) continue;
-        results.push_back(hit.word);
-    }
     return results;
 }
 
@@ -1571,6 +1749,10 @@ std::vector<std::string> query_user_candidates(const char *code, const char *con
         if (it != g_user_pinyin_memory.end()) {
             for (const auto &entry : it->second) {
                 if (g_suppressed_words.find(entry.word) != g_suppressed_words.end()) continue;
+                if (entry.frequency < CUSTOM_PHRASE_BASE_FREQ &&
+                    !is_learned_word_valid_for_pinyin(code, entry.word)) {
+                    continue;
+                }
                 int64_t ts = (entry.last_used_timestamp > 0) ? entry.last_used_timestamp : now;
                 double days = std::max(0.0, static_cast<double>(now - ts) / (1000.0 * 86400.0));
                 float half_life = (entry.frequency >= CUSTOM_PHRASE_BASE_FREQ)
@@ -1749,10 +1931,20 @@ std::string decode_pinyin_sentence(const char *context, const char *pinyin) {
             );
 
             if (sp.end_pos == best_end && !trailing_prefix.empty()) {
-                std::string mixed_py = sp.combined_py + trailing_prefix;
-                lookup_dict_matches_for_span(
-                    mixed_py, sp.syl_count + 1, sp.syl_count, sp.end_pos, sp.first_syl_len, fz_pen + 1.5f, 4, matches
-                );
+                size_t sub_count = 0;
+                for (size_t s_idx = 0; s_idx < STANDARD_PINYIN_SYLLABLE_COUNT && sub_count < 6; ++s_idx) {
+                    const char *syl = STANDARD_PINYIN_SYLLABLES[s_idx];
+                    if (std::strncmp(syl, trailing_prefix.c_str(), trailing_prefix.size()) == 0) {
+                        std::string mixed_py = sp.combined_py + syl;
+                        size_t prev_size = matches.size();
+                        lookup_dict_matches_for_span(
+                            mixed_py, sp.syl_count + 1, sp.syl_count, sp.end_pos, sp.first_syl_len, fz_pen + 1.0f, 2, matches
+                        );
+                        if (matches.size() > prev_size) {
+                            ++sub_count;
+                        }
+                    }
+                }
             }
         }
 
@@ -2391,6 +2583,10 @@ void rerank_candidates(
                     std::string cand(candidates[i]);
                     for (const auto &entry : it->second) {
                         if (entry.word == cand) {
+                            if (entry.frequency < CUSTOM_PHRASE_BASE_FREQ &&
+                                !is_learned_word_valid_for_pinyin(pinyin, cand)) {
+                                continue;
+                            }
                             int64_t ts = (entry.last_used_timestamp > 0) ? entry.last_used_timestamp : now;
                             double days = std::max(0.0, static_cast<double>(now - ts) / (1000.0 * 86400.0));
                             float half_life = (entry.frequency >= CUSTOM_PHRASE_BASE_FREQ)
@@ -2413,6 +2609,9 @@ void rerank_candidates(
             for (int i = 0; i < count; ++i) {
                 if (!candidates[i] || is_suppressed[i]) continue;
                 std::string cand(candidates[i]);
+                if (!clean_py.empty() && !is_learned_word_valid_for_pinyin(pinyin, cand)) {
+                    continue;
+                }
                 float best_user_score = 0.0f;
                 int best_freq = 0;
                 for (const auto &tail : tails) {
@@ -2448,6 +2647,10 @@ void rerank_candidates(
     if (is_user_learned) {
         for (int i = 0; i < count; ++i) {
             if (is_user_learned[i] && !is_suppressed[i]) {
+                if (!clean_py.empty() && candidates[i] &&
+                    !is_learned_word_valid_for_pinyin(pinyin, candidates[i])) {
+                    continue;
+                }
                 scores[i].score += 15.0f;
                 has_boost = true;
                 boosted[i] = true;
@@ -2485,6 +2688,14 @@ void rerank_candidates(
         if (dict_any_loaded()) {
             for (int i = 0; i < count; ++i) {
                 if (candidates[i] && !is_suppressed[i]) {
+                    if (!clean_py.empty() && !user_prioritized[i] &&
+                        !is_learned_word_valid_for_pinyin(pinyin, candidates[i])) {
+                        scores[i].score -= 25.0f;
+                        is_suppressed[i] = true;
+                        has_boost = true;
+                        if (i == 0) first_is_suppressed = true;
+                        continue;
+                    }
                     float s = query_dict_word_prior(candidates[i]);
                     if (s > 0.0f) {
                         scores[i].score += s;
@@ -2551,22 +2762,39 @@ void rerank_candidates(
             scores[best_idx].char_length < scores[0].char_length) {
             if (scores[0].char_length >= 4) {
                 is_short_truncation = true;
-            } else if (quanpin_mode && !clean_py.empty() && clean_py.length() >= 6 && scores[0].char_length >= 2) {
+            } else if (quanpin_mode && !clean_py.empty() && clean_py.length() >= 2 && scores[0].char_length >= 2) {
                 is_short_truncation = true;
             } else if (!quanpin_mode && scores[0].char_length >= 2 && scores[best_idx].char_length == 1) {
                 is_short_truncation = true;
             }
         }
 
+        const size_t active_syl_count = (quanpin_mode && !clean_py.empty())
+            ? split_pinyin_into_syllables(pinyin).size()
+            : 0;
+
+        auto cand_cmp = [&](const LmCandidateScore &a, const LmCandidateScore &b) {
+            bool a_sup = is_suppressed[a.original_index];
+            bool b_sup = is_suppressed[b.original_index];
+            if (a_sup != b_sup) return !a_sup;
+
+            bool a_strong_user = user_prioritized[a.original_index] && user_max_freq[a.original_index] >= 2;
+            bool b_strong_user = user_prioritized[b.original_index] && user_max_freq[b.original_index] >= 2;
+            if (!a_strong_user && !b_strong_user && quanpin_mode && active_syl_count >= 2) {
+                size_t eff_a = std::min(a.char_length, active_syl_count);
+                size_t eff_b = std::min(b.char_length, active_syl_count);
+                if (eff_a != eff_b) {
+                    return eff_a > eff_b;
+                }
+            }
+            return a.score > b.score;
+        };
+
         if (!first_is_suppressed &&
             (is_short_truncation || (!is_user_chosen && best_idx != 0 && (max_score - orig_0_score) < flip_gate_delta))) {
-            std::stable_sort(scores.begin() + 1, scores.end(), [](const LmCandidateScore &a, const LmCandidateScore &b) {
-                return a.score > b.score;
-            });
+            std::stable_sort(scores.begin() + 1, scores.end(), cand_cmp);
         } else {
-            std::stable_sort(scores.begin(), scores.end(), [](const LmCandidateScore &a, const LmCandidateScore &b) {
-                return a.score > b.score;
-            });
+            std::stable_sort(scores.begin(), scores.end(), cand_cmp);
         }
 
         for (int i = 0; i < count; ++i) {
@@ -2679,21 +2907,26 @@ void record_user_commit(const char *pinyin, const char *prev_context, const char
 
     std::string clean_py = clean_pinyin_string(pinyin);
     if (!clean_py.empty()) {
-        auto &py_list = g_user_pinyin_memory[clean_py];
+        bool valid_for_py = is_learned_word_valid_for_pinyin(pinyin, word);
+        auto it_py = g_user_pinyin_memory.find(clean_py);
         bool py_found = false;
-        for (auto &entry : py_list) {
-            if (entry.word == word) {
-                if (entry.frequency >= CUSTOM_PHRASE_BASE_FREQ) {
-                    is_custom_commit = true;
-                } else {
-                    entry.frequency++;
+        if (it_py != g_user_pinyin_memory.end()) {
+            for (auto &entry : it_py->second) {
+                if (entry.word == word) {
+                    if (entry.frequency >= CUSTOM_PHRASE_BASE_FREQ) {
+                        is_custom_commit = true;
+                        entry.last_used_timestamp = now;
+                    } else if (valid_for_py) {
+                        entry.frequency++;
+                        entry.last_used_timestamp = now;
+                    }
+                    py_found = true;
+                    break;
                 }
-                entry.last_used_timestamp = now;
-                py_found = true;
-                break;
             }
         }
-        if (!py_found) {
+        if (!py_found && valid_for_py) {
+            auto &py_list = g_user_pinyin_memory[clean_py];
             if (py_list.size() >= MAX_RECORD_BUCKET_ENTRIES) {
                 auto min_it = std::min_element(py_list.begin(), py_list.end(), [](const UserMemoryEntry &a, const UserMemoryEntry &b) {
                     return a.frequency < b.frequency;

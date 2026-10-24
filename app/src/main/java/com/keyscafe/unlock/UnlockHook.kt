@@ -26,7 +26,7 @@ class UnlockHook : XposedModule() {
                 OtpCandidateHooks.install(this, cl)
                 CalculatorHooks.install(this, cl)
                 LmCandidateHooks.install(this, cl)
-                CandidateAlignHooks.install(this, cl)
+                CandidateLayoutHooks.install(this, cl)
             }
             pkg == XyCore.get(15) -> {
                 XLog.i("注入 Keys Cafe")

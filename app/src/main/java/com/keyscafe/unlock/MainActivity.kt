@@ -31,7 +31,6 @@ class MainActivity : AppCompatActivity() {
     private var currentSandboxCalc: CalcResult? = null
     internal var lexiconExportReceiver: BroadcastReceiver? = null
     internal var activeLexiconRefreshCallback: (() -> Unit)? = null
-    internal var updateCheckInFlight = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +41,6 @@ class MainActivity : AppCompatActivity() {
 
         initHeader()
         initSwitches()
-        initAbout()
         initSandbox()
         registerLexiconExportReceiver()
         pullLexiconSnapshotFromRemote()
@@ -151,16 +149,6 @@ class MainActivity : AppCompatActivity() {
         row.setOnClickListener { switch.toggle() }
     }
 
-    private fun initAbout() {
-        binding.textAboutAppSubtitle.text = getString(R.string.xy_about_app_desc, BuildConfig.VERSION_NAME)
-        binding.rowAboutRepo.setOnClickListener { openExternalUrl(XY_REPO_URL) }
-        binding.rowAboutLicenses.setOnClickListener { showLicensesDialog() }
-        binding.rowAboutApp.setOnClickListener { showAboutDialog() }
-        binding.rowAboutUpdate.setOnClickListener { checkForUpdates(manual = true) }
-        renderCachedUpdateState()
-        maybeAutoCheckForUpdates()
-    }
-
     private fun updateIconHighlight(box: FrameLayout, icon: ImageView, active: Boolean) {
         val boxColor = ContextCompat.getColor(this, if (active) R.color.xy_accent_soft else R.color.xy_icon_box_off)
         val iconColor = ContextCompat.getColor(this, if (active) R.color.xy_accent else R.color.xy_icon_tint_off)
@@ -243,9 +231,13 @@ class MainActivity : AppCompatActivity() {
     internal fun pullLexiconSnapshotFromRemote() {
         val remoteTsv = Prefs.readString(Prefs.LM_USER_LEXICON_TSV, "")
         if (remoteTsv.isNotBlank()) {
-            XyCore.lmImportUserMemoryTsv(remoteTsv, false)
+            Thread({
+                XyCore.lmImportUserMemoryTsv(remoteTsv, false)
+                runOnUiThread { updateLexiconSummaryRow() }
+            }, "xy-pull-lexicon").apply { isDaemon = true }.start()
+        } else {
+            updateLexiconSummaryRow()
         }
-        updateLexiconSummaryRow()
         runCatching {
             // XposedService 尚未绑定成功时没有可写令牌，等绑定回调再拉取
             val token = Prefs.broadcastToken()

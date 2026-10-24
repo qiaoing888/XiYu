@@ -38,8 +38,8 @@ android {
         applicationId = "com.keyscafe.unlock"
         minSdk = 28
         targetSdk = 34
-        versionCode = 5
-        versionName = "2.4"
+        versionCode = 4
+        versionName = "2.5"
 
         ndk {
             abiFilters.add("arm64-v8a")
@@ -104,8 +104,9 @@ fun register16kAlignmentTask(variantName: String, apkPath: String) {
         val targetApk = file(apkPath)
         val alignedApk = file(apkPath.replace(".apk", "-aligned16k.apk"))
         val buildTools = "${android.sdkDirectory}/build-tools/${android.buildToolsVersion}"
-        val zipalign = file("$buildTools/zipalign")
-        val javaBin = file("${System.getProperty("java.home")}/bin/java")
+        val executableSuffix = if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) ".exe" else ""
+        val zipalign = file("$buildTools/zipalign$executableSuffix")
+        val javaBin = file("${System.getProperty("java.home")}/bin/java$executableSuffix")
         val apksignerJar = file("$buildTools/lib/apksigner.jar")
         val isRelease = variantName == "Release"
         val keystorePath = if (isRelease) {

@@ -950,46 +950,6 @@ static jobjectArray nativeDictQueryPinyin(
     return arr;
 }
 
-static jobjectArray nativeDictQueryWordPrefix(
-    JNIEnv *env,
-    jclass clazz,
-    jstring prefixObj,
-    jint maxCount
-) {
-    if (!env || !security_gate(env, clazz) || !prefixObj || maxCount <= 0) return nullptr;
-    const char *prefix = env->GetStringUTFChars(prefixObj, nullptr);
-    if (!prefix) return nullptr;
-
-    auto list = xy::query_dict_word_prefix(prefix, maxCount);
-    env->ReleaseStringUTFChars(prefixObj, prefix);
-
-    jclass strClass = env->FindClass("java/lang/String");
-    if (!strClass) return nullptr;
-
-    jobjectArray arr = env->NewObjectArray(static_cast<jsize>(list.size()), strClass, nullptr);
-    if (!arr) return nullptr;
-
-    for (size_t i = 0; i < list.size(); ++i) {
-        jstring s = env->NewStringUTF(list[i].c_str());
-        env->SetObjectArrayElement(arr, static_cast<jsize>(i), s);
-        env->DeleteLocalRef(s);
-    }
-    return arr;
-}
-
-static jboolean nativeIsValidPinyin(
-    JNIEnv *env,
-    jclass clazz,
-    jstring textObj
-) {
-    if (!env || !security_gate(env, clazz) || !textObj) return JNI_FALSE;
-    const char *text = env->GetStringUTFChars(textObj, nullptr);
-    if (!text) return JNI_FALSE;
-    bool ok = xy::is_valid_pinyin_sequence(text);
-    env->ReleaseStringUTFChars(textObj, text);
-    return ok ? JNI_TRUE : JNI_FALSE;
-}
-
 static jintArray nativeLmRerank(
     JNIEnv *env,
     jclass clazz,
@@ -1424,12 +1384,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /* reserved */) {
     static const uint8_t fn28Bytes[]  = {0x34, 0x3B, 0x2E, 0x33, 0x2C, 0x3F, 0x19, 0x35, 0x34, 0x2E, 0x3B, 0x33, 0x34, 0x29, 0x19, 0x32, 0x33, 0x34, 0x3F, 0x29, 0x3F};
     static const uint8_t sig28Bytes[] = {0x72, 0x16, 0x30, 0x3B, 0x2C, 0x3B, 0x75, 0x36, 0x3B, 0x34, 0x3D, 0x75, 0x09, 0x2E, 0x28, 0x33, 0x34, 0x3D, 0x61, 0x73, 0x00};
 
-    static const uint8_t fn29Bytes[]  = {0x34, 0x3B, 0x2E, 0x33, 0x2C, 0x3F, 0x1E, 0x33, 0x39, 0x2E, 0x0B, 0x2F, 0x3F, 0x28, 0x23, 0x0D, 0x35, 0x28, 0x3E, 0x0A, 0x28, 0x3F, 0x3C, 0x33, 0x22};
-    static const uint8_t sig29Bytes[] = {0x72, 0x16, 0x30, 0x3B, 0x2C, 0x3B, 0x75, 0x36, 0x3B, 0x34, 0x3D, 0x75, 0x09, 0x2E, 0x28, 0x33, 0x34, 0x3D, 0x61, 0x13, 0x73, 0x01, 0x16, 0x30, 0x3B, 0x2C, 0x3B, 0x75, 0x36, 0x3B, 0x34, 0x3D, 0x75, 0x09, 0x2E, 0x28, 0x33, 0x34, 0x3D, 0x61};
-
-    static const uint8_t fn30Bytes[]  = {0x34, 0x3B, 0x2E, 0x33, 0x2C, 0x3F, 0x13, 0x29, 0x0C, 0x3B, 0x36, 0x33, 0x3E, 0x0A, 0x33, 0x34, 0x23, 0x33, 0x34};
-    static const uint8_t sig30Bytes[] = {0x72, 0x16, 0x30, 0x3B, 0x2C, 0x3B, 0x75, 0x36, 0x3B, 0x34, 0x3D, 0x75, 0x09, 0x2E, 0x28, 0x33, 0x34, 0x3D, 0x61, 0x73, 0x00};
-
     const MethodEntry entries[] = {
         {fn1Bytes, sizeof(fn1Bytes), sig1Bytes, sizeof(sig1Bytes), reinterpret_cast<void *>(nativeGetSecret)},
         {fn2Bytes, sizeof(fn2Bytes), sig2Bytes, sizeof(sig2Bytes), reinterpret_cast<void *>(nativeComputeSilkWaves)},
@@ -1458,8 +1412,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void * /* reserved */) {
         {fn26Bytes, sizeof(fn26Bytes), sig26Bytes, sizeof(sig26Bytes), reinterpret_cast<void *>(nativeLmRemoveUserEntry)},
         {fn27Bytes, sizeof(fn27Bytes), sig27Bytes, sizeof(sig27Bytes), reinterpret_cast<void *>(nativeTruncateSentence)},
         {fn28Bytes, sizeof(fn28Bytes), sig28Bytes, sizeof(sig28Bytes), reinterpret_cast<void *>(nativeContainsChinese)},
-        {fn29Bytes, sizeof(fn29Bytes), sig29Bytes, sizeof(sig29Bytes), reinterpret_cast<void *>(nativeDictQueryWordPrefix)},
-        {fn30Bytes, sizeof(fn30Bytes), sig30Bytes, sizeof(sig30Bytes), reinterpret_cast<void *>(nativeIsValidPinyin)},
     };
 
     constexpr size_t count = sizeof(entries) / sizeof(entries[0]);
