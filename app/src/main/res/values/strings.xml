@@ -58,6 +58,8 @@
     <string name="xy_lm_desc">全拼/双拼/五笔/九键通用</string>
     <string name="xy_lm_quanpin_title">全拼整句与词库 · 全拼</string>
     <string name="xy_lm_quanpin_desc">整句解码与词库补全（双拼/五笔请关闭）</string>
+    <string name="xy_lm_emoticon_title">候选表情与颜文字</string>
+    <string name="xy_lm_emoticon_desc">允许在候选栏中推荐 Emoji 表情与颜文字</string>
     <string name="xy_lm_lexicon_mgr_title">个人词库管理</string>
     <string name="xy_lm_lexicon_mgr_desc">管理记忆、快捷短语与坏词压制</string>
     <string name="xy_lm_lexicon_mgr_desc_stats">记忆 %1$d · 短语 %2$d · 压制 %3$d</string>

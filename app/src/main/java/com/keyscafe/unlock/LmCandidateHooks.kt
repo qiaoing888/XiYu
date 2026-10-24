@@ -66,6 +66,47 @@ private fun isValidFullPinyinSyllable(s: String): Boolean {
     return rest in PINYIN_FINALS
 }
 
+private val ASCII_KAOMOJI_SET = setOf(
+    "t_t", "q_q", "o_o", "u_u", "v_v", "x_x", "p_q", "d_b",
+    "tat", "qaq", "qvq", "owo", "uwu", "orz", "otz", "qwq",
+    ">_<", ">.<", "=_=", "-_-", "^_^", "^o^", "*_*", "~_~", ";_;"
+)
+
+private const val SPECIAL_KAOMOJI_SYMBOLS = "⊙∀∇∃∞≈≠≡≤≥≦≧⊕⊙⊥⊿★☆○●◎◇◆□■△▲▽▼♨♩♪♫♬§♭♯ωДдㅂзε︶︵‿﹏╥╯╰╮╭━─✧٩۶ᐛو・✿❀♥♡❤"
+
+internal fun isEmoticonOrKaomoji(text: String?): Boolean {
+    if (text.isNullOrEmpty()) return false
+    var i = 0
+    val len = text.length
+    while (i < len) {
+        val cp = Character.codePointAt(text, i)
+        i += Character.charCount(cp)
+        if (cp in 0x1F300..0x1FAFF ||
+            cp in 0x1F600..0x1F64F ||
+            cp in 0x2600..0x27BF ||
+            cp in 0xFE00..0xFE0F ||
+            cp in 0x1F1E6..0x1F1FF
+        ) {
+            return true
+        }
+    }
+    val trimmed = text.trim()
+    val lower = trimmed.lowercase()
+    if (lower in ASCII_KAOMOJI_SET) return true
+    for (idx in trimmed.indices) {
+        if (SPECIAL_KAOMOJI_SYMBOLS.indexOf(trimmed[idx]) >= 0) return true
+    }
+    if ((trimmed.startsWith("(") && trimmed.endsWith(")")) ||
+        (trimmed.startsWith("o(") || trimmed.endsWith(")o"))
+    ) {
+        return true
+    }
+    if (lower.length == 3 && lower[1] == '_' && lower[0] == lower[2]) {
+        return true
+    }
+    return false
+}
+
 internal fun normalizeSpellText(rawText: String): String =
     rawText.trim().lowercase().replace(Regex("[\\s']+"), "'").trim('\'')
 
@@ -1044,38 +1085,52 @@ object LmCandidateHooks {
                             lastRawNativeTime = 0L
                             return@intercept chain.proceed()
                         }
+                        var workingList: ArrayList<Any>? = null
+                        var listModified = false
+
                         if ((ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode) && rawList != null) {
                             // 注入前保存原生快照，供拼写修正重推使用
                             lastRawNativeList = ArrayList<Any>(rawList)
                             lastRawNativeTime = System.currentTimeMillis()
                             lastRawSlot = slot
-                            val workingList = ArrayList<Any>(rawList)
-                            val changed = processCandidates(workingList, classLoader)
-                            if (changed) {
-                                var mutatedInPlace = false
-                                if (rawList is MutableList<*>) {
-                                    mutatedInPlace = runCatching {
-                                        @Suppress("UNCHECKED_CAST")
-                                        val mut = rawList as MutableList<Any>
-                                        mut.clear()
-                                        mut.addAll(workingList)
-                                        true
-                                    }.getOrDefault(false)
-                                }
-                                val finalList = if (mutatedInPlace) {
-                                    @Suppress("UNCHECKED_CAST")
-                                    rawList as MutableList<Any>
-                                } else {
-                                    workingList
-                                }
-                                rememberEmittedList(finalList)
-                                if (!mutatedInPlace) {
-                                    val result = chain.proceed(arrayOf(workingList, slot))
-                                    scheduleCandidateReemit(slot)
-                                    return@intercept result
-                                }
-                                scheduleCandidateReemit(slot)
+                            val list = ArrayList<Any>(rawList)
+                            if (processCandidates(list, classLoader)) {
+                                workingList = list
+                                listModified = true
                             }
+                        }
+
+                        if (!ConfigStore.lmEmoticon && rawList != null) {
+                            val target = workingList ?: ArrayList<Any>(rawList).also { workingList = it }
+                            if (filterEmoticons(target)) {
+                                listModified = true
+                            }
+                        }
+
+                        if (listModified && workingList != null) {
+                            var mutatedInPlace = false
+                            if (rawList is MutableList<*>) {
+                                mutatedInPlace = runCatching {
+                                    @Suppress("UNCHECKED_CAST")
+                                    val mut = rawList as MutableList<Any>
+                                    mut.clear()
+                                    mut.addAll(workingList!!)
+                                    true
+                                }.getOrDefault(false)
+                            }
+                            val finalList = if (mutatedInPlace) {
+                                @Suppress("UNCHECKED_CAST")
+                                rawList as MutableList<Any>
+                            } else {
+                                workingList!!
+                            }
+                            rememberEmittedList(finalList)
+                            if (!mutatedInPlace) {
+                                val result = chain.proceed(arrayOf(workingList, slot))
+                                scheduleCandidateReemit(slot)
+                                return@intercept result
+                            }
+                            scheduleCandidateReemit(slot)
                         }
                         chain.proceed()
                     }
@@ -1114,38 +1169,52 @@ object LmCandidateHooks {
                             lastRawNativeTime = 0L
                             return@intercept chain.proceed()
                         }
+                        var workingList: ArrayList<Any>? = null
+                        var listModified = false
+
                         if ((ConfigStore.lmEnabled || ConfigStore.lmQuanpinMode) && rawList != null) {
                             // 注入前保存原生快照，供拼写修正重推使用
                             lastRawNativeList = ArrayList<Any>(rawList)
                             lastRawNativeTime = System.currentTimeMillis()
                             lastRawSlot = 0
-                            val workingList = ArrayList<Any>(rawList)
-                            val changed = processCandidates(workingList, classLoader)
-                            if (changed) {
-                                var mutatedInPlace = false
-                                if (rawList is MutableList<*>) {
-                                    mutatedInPlace = runCatching {
-                                        @Suppress("UNCHECKED_CAST")
-                                        val mut = rawList as MutableList<Any>
-                                        mut.clear()
-                                        mut.addAll(workingList)
-                                        true
-                                    }.getOrDefault(false)
-                                }
-                                val finalList = if (mutatedInPlace) {
-                                    @Suppress("UNCHECKED_CAST")
-                                    rawList as MutableList<Any>
-                                } else {
-                                    workingList
-                                }
-                                rememberEmittedList(finalList)
-                                if (!mutatedInPlace) {
-                                    val result = chain.proceed(arrayOf(workingList))
-                                    scheduleCandidateReemit(0)
-                                    return@intercept result
-                                }
-                                scheduleCandidateReemit(0)
+                            val list = ArrayList<Any>(rawList)
+                            if (processCandidates(list, classLoader)) {
+                                workingList = list
+                                listModified = true
                             }
+                        }
+
+                        if (!ConfigStore.lmEmoticon && rawList != null) {
+                            val target = workingList ?: ArrayList<Any>(rawList).also { workingList = it }
+                            if (filterEmoticons(target)) {
+                                listModified = true
+                            }
+                        }
+
+                        if (listModified && workingList != null) {
+                            var mutatedInPlace = false
+                            if (rawList is MutableList<*>) {
+                                mutatedInPlace = runCatching {
+                                    @Suppress("UNCHECKED_CAST")
+                                    val mut = rawList as MutableList<Any>
+                                    mut.clear()
+                                    mut.addAll(workingList!!)
+                                    true
+                                }.getOrDefault(false)
+                            }
+                            val finalList = if (mutatedInPlace) {
+                                @Suppress("UNCHECKED_CAST")
+                                rawList as MutableList<Any>
+                            } else {
+                                workingList!!
+                            }
+                            rememberEmittedList(finalList)
+                            if (!mutatedInPlace) {
+                                val result = chain.proceed(arrayOf(workingList))
+                                scheduleCandidateReemit(0)
+                                return@intercept result
+                            }
+                            scheduleCandidateReemit(0)
                         }
                         chain.proceed()
                     }
@@ -1492,6 +1561,13 @@ object LmCandidateHooks {
                 }
             }
 
+            // 7. 过滤表情与颜文字
+            if (!ConfigStore.lmEmoticon) {
+                if (filterEmoticons(list)) {
+                    listModified = true
+                }
+            }
+
             // 候选池上限设为 60 个，首行 6 格，其余候选供展开选词框浏览
             val maxCandidatePool = 60
             if (list.size > maxCandidatePool) {
@@ -1500,6 +1576,16 @@ object LmCandidateHooks {
             }
         }.onFailure { XLog.e("LmCandidateHooks 候选重排异常", it) }
         return listModified
+    }
+
+    // 过滤候选列表中的表情与颜文字
+    private fun filterEmoticons(list: MutableList<Any>): Boolean {
+        val before = list.size
+        list.removeAll { item ->
+            val text = getCandidateText(item)
+            isEmoticonOrKaomoji(text)
+        }
+        return list.size != before
     }
 
     /**

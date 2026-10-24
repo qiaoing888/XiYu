@@ -113,6 +113,14 @@ class MainActivity : AppCompatActivity() {
             XyCore.lmSetQuanpinMode(quanpinEnabled)
         }
 
+        bindSwitch(
+            binding.switchLmEmoticon,
+            binding.rowLmEmoticon,
+            binding.boxLmEmoticon,
+            binding.iconLmEmoticon,
+            Prefs.LM_EMOTICON
+        )
+
         // 3. 个人词库管理入口
         binding.rowLmLexiconManager.setOnClickListener { showLexiconManagerDialog() }
         binding.layoutLexiconGuide.setOnClickListener { showLexiconManagerDialog() }
@@ -186,6 +194,7 @@ class MainActivity : AppCompatActivity() {
 
         syncSingleSwitch(binding.switchLm, binding.boxLm, binding.iconLm, Prefs.LM_ENABLED)
         syncSingleSwitch(binding.switchLmQuanpin, binding.boxLmQuanpin, binding.iconLmQuanpin, Prefs.LM_QUANPIN_MODE)
+        syncSingleSwitch(binding.switchLmEmoticon, binding.boxLmEmoticon, binding.iconLmEmoticon, Prefs.LM_EMOTICON)
 
         XyCore.lmSetLongPhraseAggressive(Prefs.read(Prefs.LM_LONG_PHRASE_AGGRESSIVE))
         XyCore.lmSetQuanpinMode(Prefs.read(Prefs.LM_QUANPIN_MODE))

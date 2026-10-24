@@ -901,6 +901,51 @@
                         android:layout_marginStart="10dp"
                         android:contentDescription="@string/xy_lm_quanpin_title" />
                 </LinearLayout>
+                <View style="@style/XyDivider" />
+
+                <!-- 颜文字与表情开关 -->
+                <LinearLayout
+                    android:id="@+id/rowLmEmoticon"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:id="@+id/boxLmEmoticon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box">
+
+                        <ImageView
+                            android:id="@+id/iconLmEmoticon"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_mood" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_lm_emoticon_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_lm_emoticon_desc" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switchLmEmoticon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:contentDescription="@string/xy_lm_emoticon_title" />
+                </LinearLayout>
 
                 <View style="@style/XyDivider" />
 

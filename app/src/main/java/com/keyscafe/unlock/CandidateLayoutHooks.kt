@@ -121,6 +121,7 @@ object CandidateLayoutHooks {
         hookHorizontalBarLayout(module, classLoader)
         hookHorizontalItemBind(module, classLoader)
         hookExpandedPanelLayout(module, classLoader)
+        hookHideSogouLogo(module, classLoader)
     }
 
     private fun hookColumnPolicy(module: XposedModule, classLoader: ClassLoader) {
@@ -189,6 +190,16 @@ object CandidateLayoutHooks {
                 if (!isChinese) {
                     return@intercept chain.proceed()
                 }
+
+                // 过滤表情与颜文字
+                if (!ConfigStore.lmEmoticon && candidates is MutableList<*>) {
+                    @Suppress("UNCHECKED_CAST")
+                    (candidates as MutableList<Any>).removeAll { cand ->
+                        val text = LmCandidateHooks.getCandidateTextForLayout(cand)
+                        isEmoticonOrKaomoji(text)
+                    }
+                }
+
                 val hasChinese = candidates.any { cand ->
                     val text = LmCandidateHooks.getCandidateTextForLayout(cand)
                     text != null && containsChinese(text)
@@ -399,6 +410,44 @@ object CandidateLayoutHooks {
                 repoSetFirstRowCountMethod = repo.javaClass.getMethod("m", java.lang.Integer.TYPE)
             }
             repoSetFirstRowCountMethod?.invoke(repo, firstRowCount)
+        }
+    }
+
+    // 隐藏候选展开按钮下方的搜狗角标
+    private fun hookHideSogouLogo(module: XposedModule, classLoader: ClassLoader) {
+        val bindingCls = Reflect.findClassIfExists(
+            "com.samsung.android.honeyboard.textboard.databinding.CandidateContainerBindingImpl",
+            classLoader
+        ) ?: return
+
+        Reflect.methodInHierarchy(bindingCls, "executeBindings")?.let { m ->
+            XLog.safe("CandidateLayoutHooks.executeBindings") {
+                module.hook(m).intercept { chain ->
+                    val result = chain.proceed()
+                    chain.thisObject?.let { binding ->
+                        (Reflect.field(binding, "expandBtnLayoutSogouBg") as? View)?.let { view ->
+                            view.visibility = View.GONE
+                            view.background = null
+                        }
+                    }
+                    result
+                }
+            }
+        }
+
+        bindingCls.declaredConstructors.forEach { ctor ->
+            XLog.safe("CandidateLayoutHooks.bindingInit") {
+                module.hook(ctor).intercept { chain ->
+                    val result = chain.proceed()
+                    chain.thisObject?.let { binding ->
+                        (Reflect.field(binding, "expandBtnLayoutSogouBg") as? View)?.let { view ->
+                            view.visibility = View.GONE
+                            view.background = null
+                        }
+                    }
+                    result
+                }
+            }
         }
     }
 }

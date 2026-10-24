@@ -46,6 +46,7 @@ object ConfigStore {
     val calcRadix: Boolean get() = snapshot[Prefs.CALC_RADIX] ?: true
     val lmEnabled: Boolean get() = snapshot[Prefs.LM_ENABLED] ?: true
     val lmQuanpinMode: Boolean get() = snapshot[Prefs.LM_QUANPIN_MODE] ?: true
+    val lmEmoticon: Boolean get() = snapshot[Prefs.LM_EMOTICON] ?: false
     val lmLearning: Boolean get() = snapshot[Prefs.LM_LEARNING] ?: true
     val lmNextWord: Boolean get() = snapshot[Prefs.LM_NEXT_WORD] ?: true
     val lmLongPhraseAggressive: Boolean get() = snapshot[Prefs.LM_LONG_PHRASE_AGGRESSIVE] ?: true

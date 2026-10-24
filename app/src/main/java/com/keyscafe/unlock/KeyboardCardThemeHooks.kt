@@ -96,6 +96,15 @@ object KeyboardCardThemeHooks {
         } else {
             cardView.foreground?.invalidateSelf()
         }
+
+        // 隐藏展开按钮下方的搜狗角标
+        val sogouId = decor.resources.getIdentifier("expand_btn_layout_sogou_bg", "id", KB_PKG)
+        if (sogouId != 0) {
+            decor.findViewById<View>(sogouId)?.let {
+                it.visibility = View.GONE
+                it.background = null
+            }
+        }
     }
 
     private fun findCardRoot(decor: View): View? {

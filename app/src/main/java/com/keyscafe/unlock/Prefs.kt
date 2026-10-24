@@ -22,6 +22,7 @@ object Prefs {
     const val CALC_RADIX = "calc_radix"
     const val LM_ENABLED = "lm_enabled"
     const val LM_QUANPIN_MODE = "lm_quanpin_mode"
+    const val LM_EMOTICON = "lm_emoticon"
     const val LM_LEARNING = "lm_learning"
     const val LM_NEXT_WORD = "lm_next_word"
     const val LM_LONG_PHRASE_AGGRESSIVE = "lm_long_phrase_aggressive"
@@ -41,6 +42,7 @@ object Prefs {
         CALC_RADIX to true,
         LM_ENABLED to true,
         LM_QUANPIN_MODE to true,
+        LM_EMOTICON to false,
         LM_LEARNING to true,
         LM_NEXT_WORD to true,
         LM_LONG_PHRASE_AGGRESSIVE to true,
