@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var currentSandboxCalc: CalcResult? = null
     internal var lexiconExportReceiver: BroadcastReceiver? = null
     internal var activeLexiconRefreshCallback: (() -> Unit)? = null
+    internal var updateCheckInFlight = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         initHeader()
         initSwitches()
+        initAbout()
         initSandbox()
         registerLexiconExportReceiver()
         pullLexiconSnapshotFromRemote()
@@ -147,6 +149,16 @@ class MainActivity : AppCompatActivity() {
             onChanged?.invoke(checked)
         }
         row.setOnClickListener { switch.toggle() }
+    }
+
+    private fun initAbout() {
+        binding.textAboutAppSubtitle.text = getString(R.string.xy_about_app_desc, BuildConfig.VERSION_NAME)
+        binding.rowAboutRepo.setOnClickListener { openExternalUrl(XY_REPO_URL) }
+        binding.rowAboutLicenses.setOnClickListener { showLicensesDialog() }
+        binding.rowAboutApp.setOnClickListener { showAboutDialog() }
+        binding.rowAboutUpdate.setOnClickListener { checkForUpdates(manual = true) }
+        renderCachedUpdateState()
+        maybeAutoCheckForUpdates()
     }
 
     private fun updateIconHighlight(box: FrameLayout, icon: ImageView, active: Boolean) {

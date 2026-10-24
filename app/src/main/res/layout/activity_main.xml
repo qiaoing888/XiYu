@@ -1626,6 +1626,242 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 9. 关于分组 (ABOUT) -->
+        <LinearLayout style="@style/XySectionHeader">
+            <TextView
+                style="@style/XySectionTitle"
+                android:text="@string/xy_section_about" />
+            <TextView
+                style="@style/XySectionEn"
+                android:text="@string/xy_section_about_en" />
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView style="@style/XyCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- 项目主页 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutRepo"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_github"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_repo_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:fontFamily="monospace"
+                            android:text="@string/xy_about_repo_desc" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_repo_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 开源许可与致谢 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutLicenses"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_license"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_license_title" />
+
+                        <TextView
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_license_desc" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_license_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 检查更新 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutUpdate"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_update"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_update_title" />
+
+                        <TextView
+                            android:id="@+id/textAboutUpdateSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_update_subtitle_default" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/badgeAboutUpdate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_update_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <View style="@style/XyDivider" />
+
+                <!-- 关于汐语 -->
+                <LinearLayout
+                    android:id="@+id/rowAboutApp"
+                    style="@style/XyRow">
+
+                    <FrameLayout
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/xy_bg_icon_box"
+                        android:backgroundTint="@color/xy_accent_soft">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:layout_gravity="center"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_xy_info"
+                            app:tint="@color/xy_accent" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="11dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            style="@style/XyRowTitle"
+                            android:text="@string/xy_about_app_title" />
+
+                        <TextView
+                            android:id="@+id/textAboutAppSubtitle"
+                            style="@style/XyRowSubtitle"
+                            android:text="@string/xy_about_app_title" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/xy_bg_code_badge"
+                        android:fontFamily="monospace"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:paddingTop="3.5dp"
+                        android:paddingBottom="3.5dp"
+                        android:text="@string/xy_about_app_action"
+                        android:textColor="@color/xy_badge_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- 页脚版本信息 -->
         <TextView
             android:id="@+id/footerText"

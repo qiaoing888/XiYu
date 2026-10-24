@@ -6,6 +6,8 @@
         android:name="com.keyscafe.unlock.permission.INTERNAL"
         android:protectionLevel="signature" />
     <uses-permission android:name="com.keyscafe.unlock.permission.INTERNAL" />
+    <!-- 仅用于访问 GitHub Release 检查版本更新，不涉及任何输入数据 -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".XyApp"
