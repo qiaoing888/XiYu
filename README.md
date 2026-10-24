@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android%209.0%2B%20(One%20UI)-0381FE?logo=android&logoColor=white" alt="Platform" />
-  <img src="https://img.shields.io/badge/Xposed-API%20100%2B%20(LSPosed)-4CAF50?logo=github&logoColor=white" alt="LSPosed" />
+  <img src="https://img.shields.io/badge/Xposed-API%20100%2B%20(LSPosed)-4CAF50" alt="LSPosed" />
   <img src="https://img.shields.io/badge/Language-Kotlin%20%2F%20C%2B%2B-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin / C++" />
   <img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License" />
 </p>
@@ -86,8 +86,6 @@
 
 ### 1. 构建 Release APK
 ```bash
-git clone https://github.com/qiaoing888/XiYu.git
-cd XiYu
 ./gradlew assembleRelease
 # 产物位置: app/build/outputs/apk/release/app-release.apk
 ```
@@ -124,6 +122,6 @@ g++ -O2 -std=c++17 tools/build_embedded_data.cpp -o build_embedded_data
 本项目遵循 [GNU General Public License v3.0](LICENSE) 开源协议。
 
 词库与语言模型数据源致谢：
-- [rime-ice](https://github.com/iDvel/rime-ice)（GPL-3.0）：基础与扩展拼音词库
-- [rime-wanxiang](https://github.com/amzxyz/rime-wanxiang)（CC BY 4.0）：补充词库与语言模型转移权重
-- [chinese-ime-lm](https://github.com/metasequoiaime/chinese-ime-lm)（GPL-3.0）：语言模型训练参考
+- rime-ice（GPL-3.0）：基础与扩展拼音词库
+- rime-wanxiang（CC BY 4.0）：补充词库与语言模型转移权重
+- chinese-ime-lm（GPL-3.0）：语言模型训练参考

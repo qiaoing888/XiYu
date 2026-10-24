@@ -4,7 +4,7 @@
 
 | 组件 | 位置 | 许可 | 说明 |
 |---|---|---|---|
-| Darts-clone | `app/src/main/cpp/darts.h` | BSD-2-Clause | 双数组 Trie 实现，作者 Susumu Yata；许可文本已保留在源文件头部 |
+| Darts-clone | `app/src/main/cpp/darts.h` | BSD-3-Clause | 双数组 Trie 实现，作者 Susumu Yata |
 | libxposed API / Service | `app/libs/libxposed-*.jar` | Apache-2.0 | Xposed 模块接口 |
 | AndroidX / Material Components | Gradle 依赖 | Apache-2.0 | Android UI 基础库 |
 | Kotlin / kotlinx-coroutines | Gradle 依赖 | Apache-2.0 | Kotlin 运行时 |
